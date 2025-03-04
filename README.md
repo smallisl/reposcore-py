@@ -8,6 +8,9 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+아래는 `-h` 또는 `--help` 옵션으로 실행한 결과를 붙여넣은 것이므로
+명령줄 관련 코드가 변경되면 아래 내용도 그에 맞게 수정해야 함.
+
 ```
 usage: __main__.py [-h] --repo REPO [--output OUTPUT] [--format {table,chart,both}]
 
