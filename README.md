@@ -1,7 +1,7 @@
-# repo-score-py
-A CLI for scoring student participation in an open-source class repo.
+# reposcore-py
+A CLI for scoring student participation in an open-source class repo, implemted in Python.
 
-## Install depenencies
+## Install dependencies
 
 ```bash
 pip install -r requirements.txt
