@@ -1,3 +1,5 @@
+main
+김고운 godolll
 윤인효 INHYOYOON
 김효은 hyn033  
 최주혜 weeksun02  
@@ -8,3 +10,4 @@
 서예린 syl0073  
 정민성 jung0148  
 정수련 jungsuryeon
+main
