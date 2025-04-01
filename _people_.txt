@@ -10,4 +10,5 @@ main
 서예린 syl0073  
 정민성 jung0148  
 정수련 jungsuryeon
+명현철 MyeongHyeonCheol
 main
