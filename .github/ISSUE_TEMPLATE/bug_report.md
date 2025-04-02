@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: "[BUG] 여기에 버그 이슈 제목 작성"
 labels: bug
 assignees: ''
 

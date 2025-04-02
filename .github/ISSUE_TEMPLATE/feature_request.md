@@ -1,8 +1,8 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: ''
-labels: ''
+title: 글머리 없이 여기에 이슈 제목 작성
+labels: enhancement
 assignees: ''
 
 ---

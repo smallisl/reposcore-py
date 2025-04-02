@@ -1,8 +1,8 @@
 ---
 name: Document request
 about: Suggest a documentation for this project
-title: ''
-labels: ''
+title: "[DOC] 여기에 문서 이슈 제목 작성"
+labels: documentation
 assignees: ''
 
 ---
