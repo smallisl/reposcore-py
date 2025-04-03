@@ -3,7 +3,6 @@
 import argparse
 import sys
 import requests
-import pandas as pd
 from .analyzer import RepoAnalyzer
 
 # 깃허브 저장소 기본 URL
