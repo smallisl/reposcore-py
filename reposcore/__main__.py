@@ -3,6 +3,7 @@
 import argparse
 import sys
 import requests
+import pandas as pd
 from .analyzer import RepoAnalyzer
 
 # 깃허브 저장소 기본 URL
@@ -64,8 +65,8 @@ def main():
     
     try:
         # Collect participation data
-        print("Collecting commit data...")
-        analyzer.collect_commits()
+        print("Collecting merged PR data...") 
+        analyzer.collect_PRs()   #collect_commits가 아닌 프로젝트에 맞는 collect_PRs로 변경.
         
         print("Collecting issues data...")
         analyzer.collect_issues()
