@@ -10,7 +10,6 @@ class RepoAnalyzer:
     
     def __init__(self, repo_path: str):
         self.repo_path = repo_path
-        self.headers = {}
         self.participants: Dict = {}
         self.score_weights = {
             'PRs': 1,              #이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
@@ -52,7 +51,6 @@ class RepoAnalyzer:
                     self.participants[author] = {
                         "PRs": 0,
                         "issues_created": 0,
-                        "issue_comments": 0
                     }
 
                 # 'pull_request' 필드가 있으면 PR
@@ -70,30 +68,13 @@ class RepoAnalyzer:
                     # 일반 이슈
                     self.participants[author]["issues_created"] += 1
                     issues_count += 1
-
-                # 이슈에 달린 댓글 처리
-                comments_url = item.get("comments_url")
-                if item.get("comments", 0) > 0 and comments_url:
-                    comments_response = requests.get(comments_url, headers=self.headers)
-                    if comments_response.status_code == 200:
-                        comments = comments_response.json()
-                        for comment in comments:
-                            commenter = comment.get("user", {}).get("login", "Unknown")
-                            if commenter not in self.participants:
-                                self.participants[commenter] = {
-                                    "PRs": 0,
-                                    "issues_created": 0,
-                                    "issue_comments": 0
-                                }
-                            self.participants[commenter]["issue_comments"] += 1
-                            comment_count += 1   
+   
 
             page += 1
 
         #테스트를 위한 PR, issuses, comment 갯수 출력력
         print(f"병합된 PR 총 개수: {merged_pr_count}")
         print(f"issues 총 개수: {issues_count}")
-        print(f"이슈 댓글 총 개수: {comment_count}")
       
 
     def calculate_scores(self) -> Dict:

@@ -73,16 +73,9 @@ def main():
     
     try:
         # Collect participation data
-        print("Collecting PR data...")
+        print("Collecting PRs_and_issues data...")
         analyzer.collect_PRs_and_issues()    
-        '''
-        print("Collecting PR data...")
-        analyzer.collect_PRs()
-        
-        print("Collecting issues data...")
-        analyzer.collect_issues()
-        '''
-        
+
         # Calculate scores
         scores = analyzer.calculate_scores()
         
