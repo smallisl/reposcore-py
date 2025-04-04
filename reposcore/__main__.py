@@ -23,6 +23,7 @@ def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = argparse.ArgumentParser(
         prog="python -m reposcore",
+        usage="python -m reposcore [-h] --repo owner/repo [--output filename] [--format {table,chart,both}]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False  # 기본 --help 옵션을 비활성화
     )
@@ -36,18 +37,21 @@ def parse_arguments() -> argparse.Namespace:
         "--repo",
         type=str,
         required=True,
-        help="분석할 GitHub 저장소 (형식: '소유자/저장소') 예: 'oss2025hnu/reposcore-py'"
+        metavar="owner/repo",
+        help="분석할 GitHub 저장소 (형식: '소유자/저장소')"
     )
     parser.add_argument(
         "--output",
         type=str,
         default="results",
+        metavar="filename",
         help="분석 결과를 저장할 출력 디렉토리 (기본값: 'results')"
     )
     parser.add_argument(
         "--format",
         choices=["table", "chart", "both"],
         default="both",
+        metavar="{table,chart,both}",
         help="결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')"
     )
     return parser.parse_args()
