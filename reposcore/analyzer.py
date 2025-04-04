@@ -10,6 +10,7 @@ class RepoAnalyzer:
     
     def __init__(self, repo_path: str):
         self.repo_path = repo_path
+        self.headers = {}
         self.participants: Dict = {}
         self.score_weights = {
             'PRs': 1,              #이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
