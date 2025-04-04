@@ -16,12 +16,14 @@ class RepoAnalyzer:
             'issues_created': 0.3, #향후 배점이 필요할 경우 PRs를 기존 수치였던 0.4로 바꿔주세요.
             'issue_comments': 0.3
         }
-
+    
     def collect_PRs(self) -> None:
         """GitHub API를 사용하여 병합(Merged)된 Pull Request 개수를 수집"""
         page = 1  
         per_page = 100  
 
+        merged_pr_count = 0
+        
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/pulls?state=closed&page={page}&per_page={per_page}"
             response = requests.get(url)
@@ -41,13 +43,54 @@ class RepoAnalyzer:
                     if author not in self.participants:
                         self.participants[author] = {"PRs": 0, "issues_created": 0, "issue_comments": 0}
                     
-                    self.participants[author]["PRs"] += 1  
+                    self.participants[author]["PRs"] += 1 
+
+                    merged_pr_count += 1 
 
             page += 1  
-
+        print(f"병합된 PR 총 개수: {merged_pr_count}")
+        
     def collect_issues(self) -> None:
-        """Collect issues and comments data"""
-        pass
+        """(pr이 아닌) github 이슈를 수집하고, 이슈 작성자"""
+
+        issues_count = 0
+
+        page = 1
+        per_page = 100
+        
+        while True:
+            url=f"https://api.github.com/repos/{self.repo_path}/issues?state=all&page={page}&per_page={per_page}"
+            response = requests.get(url)
+
+            if response.status_code != 200:
+                print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
+                return
+
+            issues_data = response.json()
+            if not issues_data:  # 더 이상 가져올 이슈가 없으면 반복 종료료
+                break
+
+            for issue in issues_data:
+                #pull_request라는 필드가 있으면 무시
+                if "pull_request" in issue:
+                    continue
+
+                author = issue.get("user", {}).get("login", "Unknown")
+                if author not in self.participants:
+                    self.participants[author] = {
+                        "PRs": 0,
+                        "issues_created": 0
+                    }
+
+                #이슈 카운트
+                self.participants[author]["issues_created"] += 1
+
+                issues_count += 1 
+
+            page += 1
+
+        print(f"issues 총 개수: {issues_count}")
+        
 
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor"""
@@ -76,3 +119,4 @@ class RepoAnalyzer:
         plt.title('Repository Participation Scores')
         plt.tight_layout()
         plt.savefig('participation_chart.png')
+

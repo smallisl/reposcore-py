@@ -73,8 +73,8 @@ def main():
     
     try:
         # Collect participation data
-        print("Collecting commit data...")
-        analyzer.collect_commits()
+        print("Collecting PR data...")
+        analyzer.collect_PRs()
         
         print("Collecting issues data...")
         analyzer.collect_issues()
@@ -82,6 +82,12 @@ def main():
         # Calculate scores
         scores = analyzer.calculate_scores()
         
+        print("\n📊 기여 요약 (PR + 이슈):")
+        for user, stats in analyzer.participants.items():
+            pr_count = stats.get("PRs", 0)
+            issue_count = stats.get("issues_created", 0)
+            print(f"- {user} : PR {pr_count}개 / 이슈 {issue_count}개")
+
         # Generate outputs based on format
         if args.format in ["table", "both"]:
             table = analyzer.generate_table(scores)
