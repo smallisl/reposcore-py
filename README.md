@@ -88,7 +88,7 @@ def test_add_score(analyzer):
 
 - $P_{fb}$ : 기능 또는 버그 관련 Merged PR 개수 (**3점**) ($P_{fb} = P_f + P_b$)  
 - $P_d$ : 문서 관련 Merged PR 개수 (**2점**)  
-- $I_{fb}$ : 기능 또는 버그 관련 Open 또는 해결된 이슈 개수 (**2점**) ($P_{fb} = I_f + I_b$)  
+- $I_{fb}$ : 기능 또는 버그 관련 Open 또는 해결된 이슈 개수 (**2점**) ($I_{fb} = I_f + I_b$)  
 - $I_d$ : 문서 관련 Open 또는 해결된 이슈 개수 (**1점**)
 
 점수로 인정 가능한 PR의 개수\
