@@ -62,12 +62,12 @@ class RepoAnalyzer:
         return scores
 
 
-    def generate_table(self, scores: Dict) -> pd.DataFrame:
+    def generate_table(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a table of participation scores"""
         df = pd.DataFrame.from_dict(scores, orient='index', columns=['Score'])
-        return df
+        df.to_csv(save_path)
 
-    def generate_chart(self, scores: Dict) -> None:
+    def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""
         plt.figure(figsize=(10, 6))
         plt.bar(scores.keys(), scores.values())
@@ -75,4 +75,4 @@ class RepoAnalyzer:
         plt.ylabel('Participation Score')
         plt.title('Repository Participation Scores')
         plt.tight_layout()
-        plt.savefig('participation_chart.png')
+        plt.savefig(save_path)
