@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#테스트
+
 import argparse
 import sys
 import requests

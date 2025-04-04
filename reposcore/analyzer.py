@@ -69,7 +69,6 @@ class RepoAnalyzer:
                     self.participants[author]["issues_created"] += 1
                     issues_count += 1
    
-
             page += 1
 
         #테스트를 위한 PR, issuses, comment 갯수 출력력
