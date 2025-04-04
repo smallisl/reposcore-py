@@ -78,12 +78,10 @@ def main():
     
     try:
         # Collect participation data
-        print("Collecting merged PR data...") 
-        analyzer.collect_PRs()   #collect_commits가 아닌 프로젝트에 맞는 collect_PRs로 변경.
-        
-        print("Collecting issues data...")
-        analyzer.collect_issues()
-        
+
+        print("Collecting PRs_and_issues data...")
+        analyzer.collect_PRs_and_issues()    
+
         # Calculate scores
         scores = analyzer.calculate_scores()
         
