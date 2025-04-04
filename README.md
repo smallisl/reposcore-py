@@ -8,20 +8,20 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-아래는 `python reposcore -h` 또는 `python reposcore --help` 실행 결과를 붙여넣은 것이므로
+아래는 `python -m reposcore -h` 또는 `python -m reposcore --help` 실행 결과를 붙여넣은 것이므로
 명령줄 관련 코드가 변경되면 아래 내용도 그에 맞게 수정해야 함.
 
 ```
-usage: __main__.py [-h] --repo REPO [--output OUTPUT] [--format {table,chart,both}]
+usage: python -m reposcore [-h] --repo REPO [--output OUTPUT] [--format {table,chart,both}]
 
-A CLI tool to score participation in an open-source course repository
+오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
 options:
-  -h, --help            show this help message and exit
-  --repo REPO           Path to the git repository
-  --output OUTPUT       Output directory for results
+  -h, --help            도움말 표시 후 종료
+  --repo REPO           분석할 GitHub 저장소 (형식: '소유자/저장소') 예: 'oss2025hnu/reposcore-py'
+  --output OUTPUT       분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
   --format {table,chart,both}
-                        Output format
+                        결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')
 ```
 
 ## Score Formula
