@@ -20,29 +20,38 @@ def check_github_repo_exists(repo: str) -> bool:
     return response.status_code == 200 # 응답코드가 정상이면 저장소가 존재함
 
 def parse_arguments() -> argparse.Namespace:
-    """Parse command line arguments"""
+    """커맨드라인 인자를 파싱하는 함수"""
     parser = argparse.ArgumentParser(
-        description="A CLI tool to score participation in an open-source course repository"
+        prog="python -m reposcore",
+        description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
+        add_help=False  # 기본 --help 옵션을 비활성화
+    )
+    
+    parser.add_argument(
+        "-h", "--help",
+        action="help",
+        help="도움말 표시 후 종료"
     )
     parser.add_argument(
         "--repo",
         type=str,
         required=True,
-        help="분석할 GitHub 저장소 (형식: '소유자/저장소') 예) 'oss2025hnu/reposcore-py'"
+        help="분석할 GitHub 저장소 (형식: '소유자/저장소') 예: 'oss2025hnu/reposcore-py'"
     )
     parser.add_argument(
         "--output",
         type=str,
         default="results",
-        help="Output directory for results"
+        help="분석 결과를 저장할 출력 디렉토리 (기본값: 'results')"
     )
     parser.add_argument(
         "--format",
         choices=["table", "chart", "both"],
         default="both",
-        help="Output format"
+        help="결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')"
     )
     return parser.parse_args()
+
 
 def main():
     """Main execution function"""
@@ -64,8 +73,8 @@ def main():
     
     try:
         # Collect participation data
-        print("Collecting merged PR data...") 
-        analyzer.collect_PRs()   #collect_commits가 아닌 프로젝트에 맞는 collect_PRs로 변경.
+        print("Collecting commit data...")
+        analyzer.collect_commits()
         
         print("Collecting issues data...")
         analyzer.collect_issues()
