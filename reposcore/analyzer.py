@@ -30,6 +30,7 @@ class RepoAnalyzer:
 
         merged_pr_count = 0
         issues_count = 0
+        comment_count = 0
 
         while True:
             # GitHub Issues API (pull request 역시 issue로 취급)
@@ -49,12 +50,13 @@ class RepoAnalyzer:
                 if author not in self.participants:
                     self.participants[author] = {
                         "PRs": 0,
-                        "issues_created": 0
+                        "issues_created": 0,
+                        "issue_comments": 0
                     }
 
                 # 'pull_request' 필드가 있으면 PR
                 if "pull_request" in item:
-                    # 병합 여부 확인 위해 PR 상세정보 조회 (Issues API에는 merged_at 없음)
+                    # 병합 여부 확인 위해 PR 상세정보 조회
                     pr_url = item.get("pull_request", {}).get("url")
                     if pr_url:
                         pr_response = requests.get(pr_url)
@@ -68,10 +70,29 @@ class RepoAnalyzer:
                     self.participants[author]["issues_created"] += 1
                     issues_count += 1
 
+                # 이슈에 달린 댓글 처리
+                comments_url = item.get("comments_url")
+                if item.get("comments", 0) > 0 and comments_url:
+                    comments_response = requests.get(comments_url, headers=self.headers)
+                    if comments_response.status_code == 200:
+                        comments = comments_response.json()
+                        for comment in comments:
+                            commenter = comment.get("user", {}).get("login", "Unknown")
+                            if commenter not in self.participants:
+                                self.participants[commenter] = {
+                                    "PRs": 0,
+                                    "issues_created": 0,
+                                    "issue_comments": 0
+                                }
+                            self.participants[commenter]["issue_comments"] += 1
+                            comment_count += 1   
+
             page += 1
 
+        #테스트를 위한 PR, issuses, comment 갯수 출력력
         print(f"병합된 PR 총 개수: {merged_pr_count}")
         print(f"issues 총 개수: {issues_count}")
+        print(f"이슈 댓글 총 개수: {comment_count}")
       
 
     def calculate_scores(self) -> Dict:
