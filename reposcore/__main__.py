@@ -24,7 +24,7 @@ def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = argparse.ArgumentParser(
         prog="python -m reposcore",
-        usage="python -m reposcore [-h] --repo owner/repo [--output filename] [--format {table,chart,both}]",
+        usage="python -m reposcore [-h] --repo owner/repo [--output dir_name] [--format {table,chart,both}]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False  # 기본 --help 옵션을 비활성화
     )
@@ -45,7 +45,7 @@ def parse_arguments() -> argparse.Namespace:
         "--output",
         type=str,
         default="results",
-        metavar="filename",
+        metavar="dir_name",
         help="분석 결과를 저장할 출력 디렉토리 (기본값: 'results')"
     )
     parser.add_argument(

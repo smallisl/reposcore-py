@@ -68,13 +68,13 @@ class RepoAnalyzer:
                     # 일반 이슈
                     self.participants[author]["issues_created"] += 1
                     issues_count += 1
-   
+
             page += 1
 
         #테스트를 위한 PR, issuses, comment 갯수 출력력
         print(f"병합된 PR 총 개수: {merged_pr_count}")
         print(f"issues 총 개수: {issues_count}")
-      
+
 
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor"""
