@@ -65,8 +65,12 @@ class RepoAnalyzer:
                     for label in label_names:
                         self.participants[author][f'p_{label}'] += 1
 
-            pages_remaining = True if 'rel="next"' in response.headers['link'] else False
-            page += 1
+             # 'link'가 없으면 False 처리
+            link_header = response.headers.get('link', '')
+            if 'rel="next"' in link_header:
+                page += 1
+            else:
+                break
 
         page = 1
         pages_remaining = True
