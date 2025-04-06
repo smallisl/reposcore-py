@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import os
 import requests
 from .analyzer import RepoAnalyzer
 
@@ -23,7 +24,7 @@ def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = argparse.ArgumentParser(
         prog="python -m reposcore",
-        usage="python -m reposcore [-h] --repo owner/repo [--output filename] [--format {table,chart,both}]",
+        usage="python -m reposcore [-h] --repo owner/repo [--output dir_name] [--format {table,chart,both}]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False  # 기본 --help 옵션을 비활성화
     )
@@ -44,7 +45,7 @@ def parse_arguments() -> argparse.Namespace:
         "--output",
         type=str,
         default="results",
-        metavar="filename",
+        metavar="dir_name",
         help="분석 결과를 저장할 출력 디렉토리 (기본값: 'results')"
     )
     parser.add_argument(
@@ -84,16 +85,18 @@ def main():
         # Calculate scores
         scores = analyzer.calculate_scores()
         
+        output_dir = args.output
+        os.makedirs(output_dir, exist_ok=True)
         # Generate outputs based on format
         if args.format in ["table", "both"]:
-            table = analyzer.generate_table(scores)
-            table.to_csv(f"{args.output}_scores.csv")
-            print("\nParticipation Scores Table:")
-            print(table)
+            table_path = os.path.join(output_dir, "table.csv")
+            analyzer.generate_table(scores, save_path=table_path)
+            print(f"\nThe table has been saved as 'table.csv' in the '{output_dir}' directory.")
             
         if args.format in ["chart", "both"]:
-            analyzer.generate_chart(scores)
-            print(f"Chart saved as participation_chart.png")
+            chart_path = os.path.join(output_dir, "chart.png")
+            analyzer.generate_chart(scores, save_path=chart_path)
+            print(f"\nThe chart has been saved as 'chart.png' in the '{output_dir}' directory.")
             
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
