@@ -181,6 +181,7 @@ class RepoAnalyzer:
             plt.text(
                 bar.get_width() + 0.2,          # 막대의 길이에 0.2만큼 더해 오른쪽에 위치
                 bar.get_y() + bar.get_height(), # 막대의 y위치에서 막대 높이만큼 내려가 텍스트 위치를 지정
+                f'{bar.get_width():.1f}',       # 막대의 길이(점수)를 정수 형태의 문자열로 표시
                 va='center',                    # 텍스트를 수직 중앙 정렬
                 fontsize=9                      # 글씨 크기를 9로 설정
             )
