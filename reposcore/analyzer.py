@@ -95,4 +95,3 @@ class RepoAnalyzer:
         plt.title('Repository Participation Scores')
         plt.tight_layout()
         plt.savefig(save_path)
-
