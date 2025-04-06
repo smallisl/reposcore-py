@@ -14,26 +14,16 @@ class RepoAnalyzer:
         self.score_weights = {
             'PRs': 1,              #이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
             'issues_created': 1,   #향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
-            'issue_comments': 1
         }
     
     def collect_PRs_and_issues(self) -> None:
-        """
-        collect_PRs와 collect_issues의 기능을 통합한 함수.
-        GitHub 이슈 목록을 한 번에 가져온 뒤,
-        pull_request 필드로 PR 여부를 구분하고,
-        병합된 PR이면 PR 카운트로,
-        일반 이슈라면 이슈 카운트로 기록한다.
-        """
         page = 1
         per_page = 100
 
         merged_pr_count = 0
         issues_count = 0
-        comment_count = 0
 
         while True:
-            # GitHub Issues API (pull request 역시 issue로 취급)
             url = f"https://api.github.com/repos/{self.repo_path}/issues?state=all&page={page}&per_page={per_page}"
             response = requests.get(url)
 
@@ -43,7 +33,7 @@ class RepoAnalyzer:
 
             items = response.json()
             if not items:
-                break  # 더 이상 가져올 이슈(또는 PR)가 없으면 종료
+                break
 
             for item in items:
                 author = item.get("user", {}).get("login", "Unknown")
@@ -53,27 +43,20 @@ class RepoAnalyzer:
                         "issues_created": 0,
                     }
 
-                # 'pull_request' 필드가 있으면 PR
                 if "pull_request" in item:
-                    # 병합 여부 확인 위해 PR 상세정보 조회
-                    pr_url = item.get("pull_request", {}).get("url")
-                    if pr_url:
-                        pr_response = requests.get(pr_url)
-                        if pr_response.status_code == 200:
-                            pr_data = pr_response.json()
-                            if pr_data.get("merged_at") is not None:
-                                self.participants[author]["PRs"] += 1
-                                merged_pr_count += 1
+                    merged_at = item.get("pull_request", {}).get("merged_at")
+                    if merged_at is not None:
+                        self.participants[author]["PRs"] += 1
+                        merged_pr_count += 1
                 else:
-                    # 일반 이슈
                     self.participants[author]["issues_created"] += 1
                     issues_count += 1
-   
+
             page += 1
 
-        #테스트를 위한 PR, issuses, comment 갯수 출력력
         print(f"병합된 PR 총 개수: {merged_pr_count}")
         print(f"issues 총 개수: {issues_count}")
+
       
 
     def calculate_scores(self) -> Dict:
@@ -82,8 +65,7 @@ class RepoAnalyzer:
         for participant, activities in self.participants.items():
             total_score = (
                 activities.get('PRs', 0) * self.score_weights['PRs'] +
-                activities.get('issues_created', 0) * self.score_weights['issues_created'] +
-                activities.get('issue_comments', 0) * self.score_weights['issue_comments']
+                activities.get('issues_created', 0) * self.score_weights['issues_created']
             )
             scores[participant] = total_score
 
