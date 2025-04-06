@@ -77,7 +77,7 @@ class RepoAnalyzer:
         print("\n참여자별 활동 내역 (participants 딕셔너리):")
         for user, info in self.participants.items():
             print(f"{user}: {info}")
-
+            
         return scores
 
 
