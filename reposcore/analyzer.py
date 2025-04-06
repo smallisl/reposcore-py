@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 
-import requests
+from typing import Dict
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from typing import Dict
+import requests
+
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
-    
+
     def __init__(self, repo_path: str):
         self.repo_path = repo_path
         self.participants: Dict = {}
         self.score_weights = {
-            'PRs': 1,              #이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
-            'issues_created': 1,   #향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
+            'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
+            'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
             'issue_comments': 1
         }
-    
+
     def collect_PRs_and_issues(self) -> None:
         """
         collect_PRs와 collect_issues의 기능을 통합한 함수.
@@ -28,64 +30,110 @@ class RepoAnalyzer:
         page = 1
         per_page = 100
 
-        merged_pr_count = 0
-        issues_count = 0
-        comment_count = 0
+        pages_remaining = True
 
-        while True:
-            # GitHub Issues API (pull request 역시 issue로 취급)
-            url = f"https://api.github.com/repos/{self.repo_path}/issues?state=all&page={page}&per_page={per_page}"
-            response = requests.get(url)
+        while pages_remaining:
+            url = f'https://api.github.com/repos/{self.repo_path}/pulls'
+            response = requests.get(url,
+                                    params={
+                                        'state': 'all',
+                                        'per_page': per_page,
+                                        'page': page
+                                    })
 
             if response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
 
             items = response.json()
-            if not items:
-                break  # 더 이상 가져올 이슈(또는 PR)가 없으면 종료
 
             for item in items:
-                author = item.get("user", {}).get("login", "Unknown")
+                author = item.get('user', {}).get('login', 'Unknown')
                 if author not in self.participants:
                     self.participants[author] = {
-                        "PRs": 0,
-                        "issues_created": 0,
+                        'p_enhancement': 0,
+                        'p_bug': 0,
+                        'p_documentation': 0,
+                        'i_enhancement': 0,
+                        'i_bug': 0,
+                        'i_documentation': 0,
                     }
 
-                # 'pull_request' 필드가 있으면 PR
-                if "pull_request" in item:
-                    # 병합 여부 확인 위해 PR 상세정보 조회
-                    pr_url = item.get("pull_request", {}).get("url")
-                    if pr_url:
-                        pr_response = requests.get(pr_url)
-                        if pr_response.status_code == 200:
-                            pr_data = pr_response.json()
-                            if pr_data.get("merged_at") is not None:
-                                self.participants[author]["PRs"] += 1
-                                merged_pr_count += 1
-                else:
-                    # 일반 이슈
-                    self.participants[author]["issues_created"] += 1
-                    issues_count += 1
+                if len(item['labels']) != 0:
+                    label_names = list(map(lambda x: x.get('name', ''), item['labels']))
+                    # print(label_names)
+                    for label in label_names:
+                        self.participants[author][f'p_{label}'] += 1
 
+            pages_remaining = True if 'rel="next"' in response.headers['link'] else False
             page += 1
 
-        #테스트를 위한 PR, issuses, comment 갯수 출력력
-        print(f"병합된 PR 총 개수: {merged_pr_count}")
-        print(f"issues 총 개수: {issues_count}")
+        page = 1
+        pages_remaining = True
 
+        while pages_remaining:
+            # GitHub Issues API (pull request 역시 issue로 취급)
+            url = f'https://api.github.com/repos/{self.repo_path}/issues'
+            response = requests.get(url,
+                                    params={
+                                        'state': 'all',
+                                        'per_page': per_page,
+                                        'page': page
+                                    })
+
+            if response.status_code != 200:
+                print(f'⚠️ GitHub API 요청 실패: {response.status_code}')
+                return
+
+            items = response.json()
+
+            for item in items:
+                author = item.get('user', {}).get('login', 'Unknown')
+                if author not in self.participants:
+                    self.participants[author] = {
+                        'p_enhancement': 0,
+                        'p_bug': 0,
+                        'p_documentation': 0,
+                        'i_enhancement': 0,
+                        'i_bug': 0,
+                        'i_documentation': 0,
+                    }
+
+                if len(item['labels']) != 0:
+                    label_names = list(map(lambda x: x.get('name', ''), item['labels']))
+                    for label in label_names:
+                        self.participants[author][f'i_{label}'] += 1
+
+            pages_remaining = True if 'rel="next"' in response.headers['link'] else False
+            page += 1
 
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor"""
         scores = {}
         for participant, activities in self.participants.items():
-            total_score = (
-                activities.get('PRs', 0) * self.score_weights['PRs'] +
-                activities.get('issues_created', 0) * self.score_weights['issues_created'] +
-                activities.get('issue_comments', 0) * self.score_weights['issue_comments']
-            )
-            scores[participant] = total_score
+            p_f = activities.get('p_enhancement', 0)
+            p_b = activities.get('p_bug', 0)
+            p_d = activities.get('p_documentation', 0)
+
+            p_fb = p_f + p_b
+
+            i_f = activities.get('i_enhancement', 0)
+            i_b = activities.get('i_bug', 0)
+            i_d = activities.get('i_documentation', 0)
+
+            i_fb = i_f + i_b
+
+            p_valid = p_fb + min(p_d, 3 * p_fb)
+            i_valid = min(i_fb + i_d, 4 * p_valid)
+
+            p_fb_at = min(p_fb, p_valid)
+            p_d_at = p_valid - p_fb
+
+            i_fb_at = min(i_fb, i_valid)
+            i_d_at = i_valid - i_fb_at
+
+            S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
+            scores[participant] = S
 
         # participants 딕셔너리 출력
         print("\n참여자별 활동 내역 (participants 딕셔너리):")
@@ -93,7 +141,6 @@ class RepoAnalyzer:
             print(f"{user}: {info}")
 
         return scores
-
 
     def generate_table(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a table of participation scores"""
@@ -108,5 +155,5 @@ class RepoAnalyzer:
         plt.ylabel('Participation Score')
         plt.title('Repository Participation Scores')
         plt.tight_layout()
+        plt.ylim(bottom=0)
         plt.savefig(save_path)
-
