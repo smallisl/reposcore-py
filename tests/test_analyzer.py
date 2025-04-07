@@ -1,3 +1,5 @@
+import os
+import tempfile
 from reposcore.analyzer import RepoAnalyzer
 
 def test_example_calculate_scores():
@@ -96,3 +98,21 @@ def test_example_calculate_scores():
     assert scores["test_user8"] == 25, "test_user8 결과값이 일치하지 않습니다."
     assert scores["test_user9"] == 21, "test_user9 결과값이 일치하지 않습니다."
     assert scores["test_user10"] == 24, "test_user10 결과값이 일치하지 않습니다."
+
+def test_generate_table_creates_file():
+    analyzer = RepoAnalyzer("dummy/repo")
+    scores = {"alice": 10, "bob": 20}
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filepath = os.path.join(tmpdir, "test_table.csv")
+        analyzer.generate_table(scores, save_path=filepath)
+        assert os.path.isfile(filepath), "CSV 파일이 생성되지 않았습니다."
+
+def test_generate_chart_creates_file():
+    analyzer = RepoAnalyzer("dummy/repo")
+    scores = {"alice": 10, "bob": 20}
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filepath = os.path.join(tmpdir, "test_chart.png")
+        analyzer.generate_chart(scores, save_path=filepath)
+        assert os.path.isfile(filepath), "차트 이미지 파일이 생성되지 않았습니다."
