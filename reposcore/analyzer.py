@@ -35,12 +35,12 @@ class RepoAnalyzer:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
             response = retry_request(url,
-                                     max_retries=3,
-                                     params={
-                                         'state': 'all',
-                                         'per_page': per_page,
-                                         'page': page
-                                     })
+                                    max_retries=3,
+                                    params={
+                                        'state': 'all',
+                                        'per_page': per_page,
+                                        'page': page
+                                    })
             if response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
@@ -65,23 +65,19 @@ class RepoAnalyzer:
                 label_names = [label.get('name', '') for label in labels if label.get('name')]
 
                 if 'pull_request' in item:
-                    pr_url = item.get('pull_request', {}).get('url')
-                    if pr_url:
-                        pr_response = retry_request(pr_url)
-                        if pr_response.status_code == 200:
-                            pr_data = pr_response.json()
-                            if pr_data.get('merged_at') is not None:
-                                for label in label_names:
-                                    key = f'p_{label}'
-                                    if key in self.participants[author]:
-                                        self.participants[author][key] += 1
+                    merged_at = item.get('pull_request', {}).get('merged_at')
+                    if merged_at:
+                        for label in label_names:
+                            key = f'p_{label}'
+                            if key in self.participants[author]:
+                                self.participants[author][key] += 1
                 else:
                     for label in label_names:
                         key = f'i_{label}'
                         if key in self.participants[author]:
                             self.participants[author][key] += 1
 
-             # 'link'가 없으면 False 처리
+            # 'link'가 없으면 False 처리
             link_header = response.headers.get('link', '')
             if 'rel="next"' in link_header:
                 page += 1
