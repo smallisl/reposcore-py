@@ -1,0 +1,36 @@
+name: Python CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 리포지토리 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 환경 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      -name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: pytest를 사용한 테스트 실행
+        run: |
+          pytest tests --verbose --junitxml=test-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload=artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
