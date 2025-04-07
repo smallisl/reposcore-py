@@ -117,3 +117,6 @@ $I_d^* = I_{\text{valid}} - I_{fb}^*$
 
 최종 점수 계산 공식:\
 $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
+
+## 토큰 생성 방법
+`docs/github-tokne-guide.md` 문서를 참고 부탁드립니다.
