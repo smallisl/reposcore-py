@@ -45,5 +45,33 @@ GitHub 토큰(Personal Access Token)은 비밀번호 대신 사용하여 GitHub 
     ![copy token](images/copy-token.png)
 
 8. 사용 방법
-    - 아래 사진은 생성한 토큰을 적용하는 예시이다.
-    ![token apply](images/token-apply.png)
+    - 아래는 생성한 GitHub 토큰을 적용하는 예시입니다.
+
+```python
+while True:
+    url = f"https://api.github.com/repos/{self.repo_path}/issues"
+    response = requests.get(
+        url,
+        headers={'Authorization': f'token {self.token}'},  # Authorization 헤더에 토큰 추가
+        params={
+            'state': 'all',
+            'per_page': self.per_page,
+            'page': self.page
+        }
+    )
+
+    if response.status_code == 200:
+        issues = response.json()
+
+        # 각 이슈의 제목을 출력하거나 처리하는 로직
+        for issue in issues:
+            print(issue['title'])  # 이슈 제목 출력
+
+        # 만약 반환된 이슈가 100개 미만이라면 마지막 페이지임
+        if len(issues) < self.per_page:
+            break  # 반복 종료
+        else:
+            self.page += 1  # 다음 페이지로 넘어감
+    else:
+        print(f"Error: {response.status_code}")
+        break  # 오류가 발생하면 반복 종료
