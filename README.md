@@ -19,20 +19,7 @@ make requirements
 명령줄 관련 코드가 변경되면 아래 내용도 그에 맞게 수정해야 함.
 
 ```
-usage: python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,chart,both}]
 
-오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
-
-positional arguments:
-  owner/repo            분석할 GitHub 저장소 (형식: '소유자/저장소')
-
-options:
-  -h, --help            도움말 표시 후 종료
-  --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
-  --format {table,text,chart,both}
-                        결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart',
-                        모두 : 'all')
-  --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
 ```
 
 ## Test
@@ -123,27 +110,4 @@ $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
 `docs/github-tokne-guide.md` 문서를 참고 부탁드립니다.
 
 ## 프로젝트 작성 시 주의사항
-
-### 1. 이슈 선점 및 작업 기간
-- **버그/기능**
-  - 선점 유지: 24시간 (타인이 PR 작성 권한 선점 가능)  
-  - 책임자 우선권: 댓글 후 48시간 (이후 타인에게 우선권 이관)
-- **문서**
-  - 선점 유지: 24시간
-
-### 2. 이슈 템플릿 & 레이블
-- 올바른 템플릿(`bug`, `feature`, `document`) 선택 시 자동 레이블 부여  
-- 레이블 수동 변경 금지 (잘못 변경 시 이슈 반려)
-
-### 3. PR 작성 가이드
-- PR에는 레이블 자동 부여 없음 → 이슈와 동일한 레이블 수동 추가  
-- PR 본문 최상단에 “참조 이슈 #번호” 링크 필수
-
-### 4. 동시 작업 제한
-- 한 저장소 내 개인당 동시 작업 이슈 최대 1개  
-- 다른 저장소(`reposcore-js` 등)에서는 별도 1개 작업 가능
-
-### 5. 이슈 작성 가이드
-- 문제를 구체적으로 기술 (관련 파일/함수/라인 등)  
-- 해결 후 기대 동작 및 결과 명시  
-- 솔루션 방향 및 구현 제안 포함
+`docs/project_guidelines.md` 문서를 참고 부탁드립니다.
