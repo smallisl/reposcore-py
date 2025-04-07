@@ -37,7 +37,6 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "repository",
         type=str,
-        required=True,
         metavar="owner/repo",
         help="분석할 GitHub 저장소 (형식: '소유자/저장소')"
     )
