@@ -15,7 +15,7 @@ def test_main_help_runs():
 def test_main_repo_runs():
     """--repo 옵션이 최소한 실행되고 종료되지 않는지 확인"""
     result = subprocess.run(
-        [sys.executable, "-m", "reposcore", "--repo", "oss2025hnu/reposcore-py", "--format", "table"],
+        [sys.executable, "-m", "reposcore", "--repo", "oss2025hnu/reposcore-py"],
         capture_output=True,
         text=True
     )
