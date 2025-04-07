@@ -81,19 +81,6 @@ class RepoAnalyzer:
             else:
                 break
 
-        page = 1
-        pages_remaining = True
-
-        while pages_remaining:
-            # GitHub Issues API (pull request 역시 issue로 취급)
-            url = f'https://api.github.com/repos/{self.repo_path}/issues'
-            response = requests.get(url,
-                                    params={
-                                        'state': 'all',
-                                        'per_page': per_page,
-                                        'page': page
-                                    })
-
         print("\n참여자별 활동 내역 (participants 딕셔너리):")
         for user, info in self.participants.items():
             print(f"{user}: {info}")
