@@ -20,9 +20,10 @@ usage: python -m reposcore [-h] --repo owner/repo [--output dir_name] [--format 
 options:
   -h, --help            도움말 표시 후 종료
   --repo owner/repo     분석할 GitHub 저장소 (형식: '소유자/저장소')
-  --output dir_name     분석 결과를 저장할 디렉토리 (기본값: 'results')
-  --format {table,chart,both}
-                        결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')
+  --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
+  --format {table,text,chart,both}
+                        결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')
+  --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
 ```
 
 ## Test
@@ -93,27 +94,21 @@ def test_add_score(analyzer):
 - $I_{fb}$ : 기능 또는 버그 관련 Open 또는 해결된 이슈 개수 (**2점**) ($I_{fb} = I_f + I_b$)  
 - $I_d$ : 문서 관련 Open 또는 해결된 이슈 개수 (**1점**)
 
-점수로 인정 가능한 PR의 개수\
-$P_{\text{valid}} = P_{fb} + \min(P_d, 3P_{fb})$
-
-점수로 인정 가능한 이슈의 개수\
-$I_{\text{valid}} = \min(I_{fb} + I_d, 4 \times P_{\text{valid}})$
+$P_{\text{valid}} = P_{fb} + \min(P_d, 3P_{fb}) ~~\quad$ 점수 인정 가능 PR 개수\
+$I_{\text{valid}} = \min(I_{fb} + I_d, 4 \times P_{\text{valid}}) \quad$ 점수 인정 가능 이슈 개수
 
 PR의 점수를 최대로 하기 위해 기능/버그 PR을 먼저 계산한 후 문서 PR을 계산합니다.
 
-기능/버그 PR을 최대로 포함:\
-$P_{fb}^* = \min(P_{fb}, P_{\text{valid}})$
-
-남은 개수에서 문서 PR을 포함:\
-$P_d^* = P_{\text{valid}} - P_{fb}^*$
+$P_{fb}^* = \min(P_{fb}, P_{\text{valid}}) \quad$ 기능/버그 PR 최대 포함\
+$P_d^* = P_{\text{valid}} - P_{fb}^* ~~\quad$ 남은 개수에서 문서 PR 포함
 
 이슈의 점수를 최대로 하기 위해 기능/버그 이슈를 먼저 계산한 후 문서 이슈를 계산합니다.
 
-기능/버그 이슈를 최대로 포함:\
-$I_{fb}^* = \min(I_{fb}, I_{\text{valid}})$
-
-남은 개수에서 문서 이슈를 포함:\
-$I_d^* = I_{\text{valid}} - I_{fb}^*$
+$I_{fb}^* = \min(I_{fb}, I_{\text{valid}}) \quad$ 기능/버그 이슈 최대 포함\
+$I_d^* = I_{\text{valid}} - I_{fb}^* ~~\quad$ 남은 개수에서 문서 이슈 포함
 
 최종 점수 계산 공식:\
 $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
+
+## 토큰 생성 방법
+`docs/github-tokne-guide.md` 문서를 참고 부탁드립니다.

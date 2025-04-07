@@ -24,3 +24,9 @@ requirements: venv
 test: requirements
 	$(PYTEST) tests
 
+# README 동기화
+generate-readme:
+	python scripts/generate_readme.py
+
+# PR 전에 자동으로 README 검증
+pre-commit: generate-readme

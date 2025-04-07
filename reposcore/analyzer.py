@@ -4,7 +4,10 @@ from typing import Dict
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+from prettytable import PrettyTable
+from .utils.retry_request import retry_request
 
+scores_temp = {} # 임시 전역변수. 추후 scores와 통합 예정.
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
@@ -29,11 +32,14 @@ class RepoAnalyzer:
 
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
-            response = requests.get(url, params={
-                'state': 'all',
-                'per_page': per_page,
-                'page': page
-            })
+
+            response = retry_request(url,
+                                     max_retries=3,
+                                     params={
+                                         'state': 'all',
+                                         'per_page': per_page,
+                                         'page': page
+                                     })
             if response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
@@ -60,7 +66,7 @@ class RepoAnalyzer:
                 if 'pull_request' in item:
                     pr_url = item.get('pull_request', {}).get('url')
                     if pr_url:
-                        pr_response = requests.get(pr_url)
+                        pr_response = retry_request(pr_url)
                         if pr_response.status_code == 200:
                             pr_data = pr_response.json()
                             if pr_data.get('merged_at') is not None:
@@ -74,7 +80,9 @@ class RepoAnalyzer:
                         if key in self.participants[author]:
                             self.participants[author][key] += 1
 
-            if 'link' in response.headers and 'rel="next"' in response.headers['link']:
+             # 'link'가 없으면 False 처리
+            link_header = response.headers.get('link', '')
+            if 'rel="next"' in link_header:
                 page += 1
             else:
                 break
@@ -86,6 +94,7 @@ class RepoAnalyzer:
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
+        global scores_temp
         for participant, activities in self.participants.items():
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
@@ -108,13 +117,45 @@ class RepoAnalyzer:
 
             S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
             scores[participant] = S
+            # 임시 코드
+            scores_temp[participant] = {
+                "feat/bug PR": 3 * p_fb_at,
+                "document PR": 2 * p_d_at,
+                "feat/bug issue": 2 * i_fb_at,    
+                "document issue": 1 * i_d_at,
+                "total" : S
+            }
+            # 임시 코드
+            
+        # 내림차순 정렬
+        scores_temp = dict(sorted(scores_temp.items(), key=lambda x: x[1]["total"], reverse=True))
 
         return scores
 
-    def generate_table(self, scores: Dict, save_path: str = "results") -> None:
+    def generate_table(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
-        df = pd.DataFrame.from_dict(scores, orient='index', columns=['Score'])
+        global scores_temp
+        df = pd.DataFrame.from_dict(scores_temp, orient="index")
         df.to_csv(save_path)
+
+    def generate_text(self, save_path) -> None:
+        """Generate a table of participation scores"""
+        global scores_temp
+        table = PrettyTable()
+        table.field_names = ["name", "feat/bug PR","document PR","feat/bug issue","document issue","total"]
+        for name, score in scores_temp.items():
+            table.add_row(
+                [name, 
+                score["feat/bug PR"], 
+                score["document PR"], 
+                score['feat/bug issue'], 
+                score['document issue'], 
+                score['total']]
+            )
+
+        # table.txt 작성
+        with open(save_path, 'w') as txt_file:
+            txt_file.write(str(table))
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""

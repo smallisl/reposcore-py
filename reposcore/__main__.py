@@ -50,11 +50,18 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--format",
-        choices=["table", "chart", "both"],
-        default="both",
-        metavar="{table,chart,both}",
-        help="결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')"
+        choices=["table", "text", "chart", "all"],
+        default="all",
+        metavar="{table,text,chart,both}",
+        help = "결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
     )
+
+    parser.add_argument(
+        "--use-cache",
+        action="store_true",
+        help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
+    )
+
     return parser.parse_args()
 
 
@@ -79,29 +86,49 @@ def main():
 
     analyzer = RepoAnalyzer(args.repository)
     
+        # 디렉토리 먼저 생성
+    output_dir = args.output
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 캐시 파일 경로 설정
+    cache_path = os.path.join(output_dir, "cache.json")
+
+    # 캐시 처리
+    if args.use_cache and os.path.exists(cache_path):
+        print("✅ 캐시 파일이 존재합니다. 캐시에서 데이터를 불러옵니다.")
+        import json
+        with open(cache_path, "r", encoding="utf-8") as f:
+            analyzer.participants = json.load(f)
+    else:
+        print("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
+        analyzer.collect_PRs_and_issues()
+        import json
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+
     try:
-        # Collect participation data
-
-        print("Collecting PRs_and_issues data...")
-        analyzer.collect_PRs_and_issues()    
-
         # Calculate scores
         scores = analyzer.calculate_scores()
-        
+
         output_dir = args.output
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Generate outputs based on format
-        if args.format in ["table", "both"]:
+        if args.format in ["table", "text", "all"]:
             table_path = os.path.join(output_dir, "table.csv")
             analyzer.generate_table(scores, save_path=table_path)
             print(f"\nThe table has been saved as 'table.csv' in the '{output_dir}' directory.")
-            
-        if args.format in ["chart", "both"]:
+
+        if args.format in ["text", "all"]:
+            txt_path = os.path.join(output_dir, "table.txt")
+            analyzer.generate_text(txt_path)
+            print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
+
+        if args.format in ["chart", "all"]:
             chart_path = os.path.join(output_dir, "chart.png")
             analyzer.generate_chart(scores, save_path=chart_path)
             print(f"\nThe chart has been saved as 'chart.png' in the '{output_dir}' directory.")
-            
+                     
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
