@@ -17,8 +17,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
 
-      -name: 의존성 설치
+      - name: 의존성 설치
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
@@ -28,9 +29,10 @@ jobs:
         run: |
           pytest tests --verbose --junitxml=test-results.xml
 
+      # Push, Pull request시 테스트를 시행하고 결과를 test-results.xml로 생성함
       - name: Upload test results
         if: always()
-        uses: actions/upload=artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results.xml
