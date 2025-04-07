@@ -55,6 +55,13 @@ def parse_arguments() -> argparse.Namespace:
         metavar="{table,chart,both}",
         help="결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')"
     )
+
+    parser.add_argument(
+        "--use-cache",
+        action="store_true",
+        help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
+    )
+
     return parser.parse_args()
 
 
@@ -76,17 +83,30 @@ def main():
     # Initialize analyzer
     analyzer = RepoAnalyzer(args.repo)
     
+        # 디렉토리 먼저 생성
+    output_dir = args.output
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 캐시 파일 경로 설정
+    cache_path = os.path.join(output_dir, "cache.json")
+
+    # 캐시 처리
+    if args.use_cache and os.path.exists(cache_path):
+        print("✅ 캐시 파일이 존재합니다. 캐시에서 데이터를 불러옵니다.")
+        import json
+        with open(cache_path, "r", encoding="utf-8") as f:
+            analyzer.participants = json.load(f)
+    else:
+        print("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
+        analyzer.collect_PRs_and_issues()
+        import json
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+
     try:
-        # Collect participation data
-
-        print("Collecting PRs_and_issues data...")
-        analyzer.collect_PRs_and_issues()    
-
         # Calculate scores
         scores = analyzer.calculate_scores()
         
-        output_dir = args.output
-        os.makedirs(output_dir, exist_ok=True)
         # Generate outputs based on format
         if args.format in ["table", "both"]:
             table_path = os.path.join(output_dir, "table.csv")
