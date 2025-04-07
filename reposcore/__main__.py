@@ -61,6 +61,12 @@ def parse_arguments() -> argparse.Namespace:
         help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
     )
 
+    parser.add.argument(
+        '--token',
+        type=str,
+        help='API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰'
+    )
+
     return parser.parse_args()
 
 
@@ -83,7 +89,7 @@ def main():
 
     # Initialize analyzer
 
-    analyzer = RepoAnalyzer(args.repository)
+    analyzer = RepoAnalyzer(args.repository, token=args.token)
     
         # 디렉토리 먼저 생성
     output_dir = args.output

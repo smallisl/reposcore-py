@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Dict
+from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -12,8 +12,9 @@ scores_temp = {} # 임시 전역변수. 추후 scores와 통합 예정.
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
 
-    def __init__(self, repo_path: str):
+    def __init__(self, repo_path: str, token: Optional[str] = None):
         self.repo_path = repo_path
+        self.token = token
         self.participants: Dict = {}
         self.score_weights = {
             'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
