@@ -12,7 +12,9 @@ make requirements
 아래는 `python -m reposcore -h` 또는 `python -m reposcore --help` 실행 결과를 붙여넣은 것이므로
 명령줄 관련 코드가 변경되면 아래 내용도 그에 맞게 수정해야 함.
 
+```
 {{ usage }}
+```
 
 ## Test
 
