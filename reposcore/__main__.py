@@ -65,7 +65,7 @@ def main():
     # Validate repo format
 
     if not validate_repo_format(args.repository):
-        print("오류 : --repo 옵션은 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
+        print("오류 : 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
         sys.exit(1)
 
     # (Optional) Check if the repository exists on GitHub
