@@ -118,10 +118,45 @@ class RepoAnalyzer:
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""
-        plt.figure(figsize=(10, 6))
-        plt.bar(scores.keys(), scores.values())
-        plt.xticks(rotation=45)
-        plt.ylabel('Participation Score')
+        # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
+        sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        
+        # 정렬된 결과에서 참여자와 점수를 분리
+        # 정렬된 결과가 없으면 빈 튜플을 사용
+        participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
+        
+        # 참여자 수에 따라 차트의 세로 길이를 동적으로 결정
+        # 최소 높이는 3인치로 설정하고, 참여자 수에 0.2인치를 곱해 높이를 정함
+        num_participants = len(participants)
+        height = max(3, num_participants * 0.2)
+        
+        # 가로 10인치, 세로 'height'인 그림 창을 생성
+        plt.figure(figsize=(10, height))
+        
+        # 수평 막대그래프를 그리며, 막대의 두께를 0.5로 설정
+        bars = plt.barh(participants, scores_sorted, height=0.5)
+        
+        # x축 레이블을 'Participation Score'로 설정
+        plt.xlabel('Participation Score')
+        
+        # 차트 제목을 'Repository Participation Scores'로 설정
         plt.title('Repository Participation Scores')
-        plt.tight_layout()
+        
+        # y축의 순서를 반전시켜, 가장 높은 점수가 위쪽에 표시되도록 합니다.
+        plt.gca().invert_yaxis()
+        
+        # 각 막대의 오른쪽에 해당 점수를 텍스트로 표시하는 파트
+        for bar in bars:
+            plt.text(
+                bar.get_width() + 0.2,          # 막대의 길이에 0.2만큼 더해 오른쪽에 위치
+                bar.get_y() + bar.get_height(), # 막대의 y위치에서 막대 높이만큼 내려가 텍스트 위치를 지정
+                f'{bar.get_width():.1f}',       # 막대의 길이(점수)를 정수 형태의 문자열로 표시
+                va='center',                    # 텍스트를 수직 중앙 정렬
+                fontsize=9                      # 글씨 크기를 9로 설정
+            )
+        
+        # 전체 레이아웃을 정리하고, 패딩을 2로 설정해 여백을 조정
+        plt.tight_layout(pad=2)
+        
+        # 설정한 경로에 차트를 저장
         plt.savefig(save_path)
