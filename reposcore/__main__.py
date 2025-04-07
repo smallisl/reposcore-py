@@ -50,10 +50,10 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--format",
-        choices=["table", "chart", "both"],
-        default="both",
-        metavar="{table,chart,both}",
-        help="결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')"
+        choices=["table", "text", "chart", "all"],
+        default="all",
+        metavar="{table,text,chart,both}",
+        help = "결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
     )
 
     parser.add_argument(
@@ -108,16 +108,21 @@ def main():
         scores = analyzer.calculate_scores()
         
         # Generate outputs based on format
-        if args.format in ["table", "both"]:
+        if args.format in ["table", "text", "all"]:
             table_path = os.path.join(output_dir, "table.csv")
             analyzer.generate_table(scores, save_path=table_path)
             print(f"\nThe table has been saved as 'table.csv' in the '{output_dir}' directory.")
-            
-        if args.format in ["chart", "both"]:
+
+        if args.format in ["text", "all"]:
+            txt_path = os.path.join(output_dir, "table.txt")
+            analyzer.generate_text(txt_path)
+            print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
+
+        if args.format in ["chart", "all"]:
             chart_path = os.path.join(output_dir, "chart.png")
             analyzer.generate_chart(scores, save_path=chart_path)
             print(f"\nThe chart has been saved as 'chart.png' in the '{output_dir}' directory.")
-            
+                     
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)

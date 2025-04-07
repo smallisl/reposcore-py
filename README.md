@@ -20,9 +20,10 @@ usage: python -m reposcore [-h] --repo owner/repo [--output dir_name] [--format 
 options:
   -h, --help            도움말 표시 후 종료
   --repo owner/repo     분석할 GitHub 저장소 (형식: '소유자/저장소')
-  --output dir_name     분석 결과를 저장할 디렉토리 (기본값: 'results')
-  --format {table,chart,both}
-                        결과 출력 형식 선택 (테이블: 'table', 차트: 'chart', 둘 다: 'both')
+  --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
+  --format {table,text,chart,both}
+                        결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')
+  --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
 ```
 
 ## Test
