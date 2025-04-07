@@ -44,3 +44,6 @@ GitHub 토큰(Personal Access Token)은 비밀번호 대신 사용하여 GitHub 
     - 이후 **Personal access tokens (classic)** 화면으로 돌아오며, 화면에 보이는 토큰값을 복사하면된다.
     ![copy token](images/copy-token.png)
 
+8. 사용 방법
+    - 아래 사진은 생성한 토큰을 적용하는 예시이다.
+    ![token apply](images/token-apply.png)
