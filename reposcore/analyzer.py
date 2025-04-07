@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from typing import Dict
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
@@ -21,31 +20,27 @@ class RepoAnalyzer:
 
     def collect_PRs_and_issues(self) -> None:
         """
-        collect_PRs와 collect_issues의 기능을 통합한 함수.
-        GitHub 이슈 목록을 한 번에 가져온 뒤,
-        pull_request 필드로 PR 여부를 구분하고,
-        병합된 PR이면 PR 카운트로,
-        일반 이슈라면 이슈 카운트로 기록한다.
+        하나의 API 호출로 GitHub 이슈 목록을 가져오고,
+        pull_request 필드가 있으면 PR로, 없으면 issue로 간주.
+        PR의 경우, 실제로 병합된 경우만 점수에 반영.
         """
         page = 1
         per_page = 100
 
-        pages_remaining = True
-
-        while pages_remaining:
-            url = f'https://api.github.com/repos/{self.repo_path}/pulls'
-            response = requests.get(url,
-                                    params={
-                                        'state': 'all',
-                                        'per_page': per_page,
-                                        'page': page
-                                    })
-
+        while True:
+            url = f"https://api.github.com/repos/{self.repo_path}/issues"
+            response = requests.get(url, params={
+                'state': 'all',
+                'per_page': per_page,
+                'page': page
+            })
             if response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
 
             items = response.json()
+            if not items:
+                break
 
             for item in items:
                 author = item.get('user', {}).get('login', 'Unknown')
@@ -59,68 +54,47 @@ class RepoAnalyzer:
                         'i_documentation': 0,
                     }
 
-                if len(item['labels']) != 0:
-                    label_names = list(map(lambda x: x.get('name', ''), item['labels']))
-                    # print(label_names)
+                labels = item.get('labels', [])
+                label_names = [label.get('name', '') for label in labels if label.get('name')]
+
+                if 'pull_request' in item:
+                    pr_url = item.get('pull_request', {}).get('url')
+                    if pr_url:
+                        pr_response = requests.get(pr_url)
+                        if pr_response.status_code == 200:
+                            pr_data = pr_response.json()
+                            if pr_data.get('merged_at') is not None:
+                                for label in label_names:
+                                    key = f'p_{label}'
+                                    if key in self.participants[author]:
+                                        self.participants[author][key] += 1
+                else:
                     for label in label_names:
-                        self.participants[author][f'p_{label}'] += 1
+                        key = f'i_{label}'
+                        if key in self.participants[author]:
+                            self.participants[author][key] += 1
 
-            pages_remaining = True if 'rel="next"' in response.headers['link'] else False
-            page += 1
+            if 'link' in response.headers and 'rel="next"' in response.headers['link']:
+                page += 1
+            else:
+                break
 
-        page = 1
-        pages_remaining = True
-
-        while pages_remaining:
-            # GitHub Issues API (pull request 역시 issue로 취급)
-            url = f'https://api.github.com/repos/{self.repo_path}/issues'
-            response = requests.get(url,
-                                    params={
-                                        'state': 'all',
-                                        'per_page': per_page,
-                                        'page': page
-                                    })
-
-            if response.status_code != 200:
-                print(f'⚠️ GitHub API 요청 실패: {response.status_code}')
-                return
-
-            items = response.json()
-
-            for item in items:
-                author = item.get('user', {}).get('login', 'Unknown')
-                if author not in self.participants:
-                    self.participants[author] = {
-                        'p_enhancement': 0,
-                        'p_bug': 0,
-                        'p_documentation': 0,
-                        'i_enhancement': 0,
-                        'i_bug': 0,
-                        'i_documentation': 0,
-                    }
-
-                if len(item['labels']) != 0:
-                    label_names = list(map(lambda x: x.get('name', ''), item['labels']))
-                    for label in label_names:
-                        self.participants[author][f'i_{label}'] += 1
-
-            pages_remaining = True if 'rel="next"' in response.headers['link'] else False
-            page += 1
+        print("\n참여자별 활동 내역 (participants 딕셔너리):")
+        for user, info in self.participants.items():
+            print(f"{user}: {info}")
 
     def calculate_scores(self) -> Dict:
-        """Calculate participation scores for each contributor"""
+        """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
         for participant, activities in self.participants.items():
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
             p_d = activities.get('p_documentation', 0)
-
             p_fb = p_f + p_b
 
             i_f = activities.get('i_enhancement', 0)
             i_b = activities.get('i_bug', 0)
             i_d = activities.get('i_documentation', 0)
-
             i_fb = i_f + i_b
 
             p_valid = p_fb + min(p_d, 3 * p_fb)
@@ -134,11 +108,6 @@ class RepoAnalyzer:
 
             S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
             scores[participant] = S
-
-        # participants 딕셔너리 출력
-        print("\n참여자별 활동 내역 (participants 딕셔너리):")
-        for user, info in self.participants.items():
-            print(f"{user}: {info}")
 
         return scores
 
