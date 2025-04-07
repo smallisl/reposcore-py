@@ -45,9 +45,6 @@ GitHub 토큰(Personal Access Token)은 비밀번호 대신 사용하여 GitHub 
     ![copy token](images/copy-token.png)
 
 8. 사용 방법
-    - 아래는 생성한 GitHub 토큰을 적용하는 예시입니다.
-
-```python
 while True:
     url = f"https://api.github.com/repos/{self.repo_path}/issues"
     response = requests.get(
