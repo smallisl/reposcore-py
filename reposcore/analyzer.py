@@ -3,7 +3,8 @@
 from typing import Dict
 import matplotlib.pyplot as plt
 import pandas as pd
-import requests
+
+from .utils.retry_request import retry_request
 
 
 class RepoAnalyzer:
@@ -29,11 +30,14 @@ class RepoAnalyzer:
 
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
-            response = requests.get(url, params={
-                'state': 'all',
-                'per_page': per_page,
-                'page': page
-            })
+
+            response = retry_request(url,
+                                     max_retries=3,
+                                     params={
+                                         'state': 'all',
+                                         'per_page': per_page,
+                                         'page': page
+                                     })
             if response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
@@ -60,7 +64,7 @@ class RepoAnalyzer:
                 if 'pull_request' in item:
                     pr_url = item.get('pull_request', {}).get('url')
                     if pr_url:
-                        pr_response = requests.get(pr_url)
+                        pr_response = retry_request(pr_url)
                         if pr_response.status_code == 200:
                             pr_data = pr_response.json()
                             if pr_data.get('merged_at') is not None:
@@ -80,19 +84,6 @@ class RepoAnalyzer:
                 page += 1
             else:
                 break
-
-        page = 1
-        pages_remaining = True
-
-        while pages_remaining:
-            # GitHub Issues API (pull request 역시 issue로 취급)
-            url = f'https://api.github.com/repos/{self.repo_path}/issues'
-            response = requests.get(url,
-                                    params={
-                                        'state': 'all',
-                                        'per_page': per_page,
-                                        'page': page
-                                    })
 
         print("\n참여자별 활동 내역 (participants 딕셔너리):")
         for user, info in self.participants.items():
