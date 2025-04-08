@@ -61,7 +61,7 @@ def parse_arguments() -> argparse.Namespace:
         help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
     )
 
-    parser.add.argument(
+    parser.add_argument(
         '--token',
         type=str,
         help='API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰'
@@ -126,14 +126,14 @@ def main():
 
         if args.format in ["text", "all"]:
             txt_path = os.path.join(output_dir, "table.txt")
-            analyzer.generate_text(txt_path)
+            analyzer.generate_text(scores,txt_path)
             print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
 
         if args.format in ["chart", "all"]:
             chart_path = os.path.join(output_dir, "chart.png")
             analyzer.generate_chart(scores, save_path=chart_path)
             print(f"\nThe chart has been saved as 'chart.png' in the '{output_dir}' directory.")
-                     
+
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
