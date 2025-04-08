@@ -12,9 +12,13 @@ GITHUB_BASE_URL = "https://github.com/"
 #친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):
     def error(self, message):
-        print(f"❌ 인자 오류: {message}")
-        print("사용 가능한 --format 값: table, text, chart, all")
-        self.print_help()  # 기본 도움말 출력
+        # --format 옵션에서만 오류 메시지를 사용자 정의
+        if '--format' in message:
+            print(f"❌ 인자 오류: {message}")
+            print("사용 가능한 --format 값: table, text, chart, all")
+        else:
+            # 그 외의 옵션들에 대해서는 기본적인 오류 메시지 출력
+            super().error(message)  # 기본 오류 메시지 호출
         sys.exit(2)  # 오류 코드 2로 종료
     
 def validate_repo_format(repo: str) -> bool:
