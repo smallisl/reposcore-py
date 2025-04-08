@@ -9,6 +9,18 @@ from .analyzer import RepoAnalyzer
 # 깃허브 저장소 기본 URL
 GITHUB_BASE_URL = "https://github.com/"
 
+#친절한 오류 메시지를 출력할 ArgumentParser 클래스
+class FriendlyArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        # --format 옵션에서만 오류 메시지를 사용자 정의
+        if '--format' in message:
+            print(f"❌ 인자 오류: {message}")
+            print("사용 가능한 --format 값: table, text, chart, all")
+        else:
+            # 그 외의 옵션들에 대해서는 기본적인 오류 메시지 출력
+            super().error(message)  # 기본 오류 메시지 호출
+        sys.exit(2)  # 오류 코드 2로 종료
+    
 def validate_repo_format(repo: str) -> bool:
     """Check if the repo input follows 'owner/repo' format"""
     parts = repo.split("/") # '/'를 기준으로 분리 (예: 'oss2025hnu/reposcore-py' → ['oss2025hnu', 'reposcore-py'])
@@ -22,7 +34,7 @@ def check_github_repo_exists(repo: str) -> bool:
 
 def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
-    parser = argparse.ArgumentParser(
+    parser = FriendlyArgumentParser(
         prog="python -m reposcore",
         usage="python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,chart,both}]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
