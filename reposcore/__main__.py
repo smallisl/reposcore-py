@@ -42,7 +42,7 @@ def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = FriendlyArgumentParser(
         prog="python -m reposcore",
-        usage="python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,chart,both}]",
+        usage="python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False  # 기본 --help 옵션을 비활성화
     )

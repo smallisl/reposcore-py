@@ -19,7 +19,7 @@ make requirements
 명령줄 관련 코드가 변경되면 아래 내용도 그에 맞게 수정해야 함.
 
 ```
-usage: python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,chart,both}]
+usage: python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
