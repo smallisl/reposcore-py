@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 from typing import Dict, Optional
+
 import matplotlib.pyplot as plt
 import pandas as pd
-import requests
 from prettytable import PrettyTable
+
 from .utils.retry_request import retry_request
 
 scores_temp = {} # 임시 전역변수. 추후 scores와 통합 예정.
