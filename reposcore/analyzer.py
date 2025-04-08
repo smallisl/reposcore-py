@@ -8,8 +8,6 @@ from prettytable import PrettyTable
 
 from .utils.retry_request import retry_request
 
-scores_temp = {} # 임시 전역변수. 추후 scores와 통합 예정.
-
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
 
@@ -92,7 +90,7 @@ class RepoAnalyzer:
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
-        global scores_temp
+        # global scores_temp
         for participant, activities in self.participants.items():
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
@@ -114,9 +112,8 @@ class RepoAnalyzer:
             i_d_at = i_valid - i_fb_at
 
             S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
-            scores[participant] = S
-            # 임시 코드
-            scores_temp[participant] = {
+
+            scores[participant] = {
                 "feat/bug PR": 3 * p_fb_at,
                 "document PR": 2 * p_d_at,
                 "feat/bug issue": 2 * i_fb_at,    
@@ -126,22 +123,18 @@ class RepoAnalyzer:
             # 임시 코드
             
         # 내림차순 정렬
-        scores_temp = dict(sorted(scores_temp.items(), key=lambda x: x[1]["total"], reverse=True))
-
-        return scores
+        return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def generate_table(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
-        global scores_temp
-        df = pd.DataFrame.from_dict(scores_temp, orient="index")
+        df = pd.DataFrame.from_dict(scores, orient="index")
         df.to_csv(save_path)
 
-    def generate_text(self, save_path) -> None:
+    def generate_text(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
-        global scores_temp
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR","document PR","feat/bug issue","document issue","total"]
-        for name, score in scores_temp.items():
+        for name, score in scores.items():
             table.add_row(
                 [name, 
                 score["feat/bug PR"], 
@@ -158,7 +151,7 @@ class RepoAnalyzer:
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""
         # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
-        sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        sorted_scores = sorted([(key, value.get('total',0)) for (key,value) in scores.items()], key=lambda item: item[1], reverse=True)
         
         # 정렬된 결과에서 참여자와 점수를 분리
         # 정렬된 결과가 없으면 빈 튜플을 사용
@@ -167,7 +160,7 @@ class RepoAnalyzer:
         # 참여자 수에 따라 차트의 세로 길이를 동적으로 결정
         # 최소 높이는 3인치로 설정하고, 참여자 수에 0.2인치를 곱해 높이를 정함
         num_participants = len(participants)
-        height = max(3, num_participants * 0.2)
+        height = max(3., num_participants * 0.2)
         
         # 가로 10인치, 세로 'height'인 그림 창을 생성
         plt.figure(figsize=(10, height))
