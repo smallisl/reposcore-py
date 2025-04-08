@@ -126,7 +126,7 @@ def main():
 
         if args.format in ["text", "all"]:
             txt_path = os.path.join(output_dir, "table.txt")
-            analyzer.generate_text(txt_path)
+            analyzer.generate_text(scores,txt_path)
             print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
 
         if args.format in ["chart", "all"]:
