@@ -93,7 +93,6 @@ def main():
         github_token = sys.stdin.readline().strip()
 
     # Validate repo format
-
     if not validate_repo_format(args.repository):
         print("오류 : 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
         sys.exit(1)
