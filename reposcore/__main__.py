@@ -73,6 +73,12 @@ def parse_arguments() -> argparse.Namespace:
 def main():
     """Main execution function"""
     args = parse_arguments()
+    github_token = args.token
+
+    if not args.token:
+        github_token = os.getenv('GITHUB_TOKEN')
+    elif args.token == '-':
+        github_token = sys.stdin.readline().strip()
 
     # Validate repo format
 
@@ -89,7 +95,7 @@ def main():
 
     # Initialize analyzer
 
-    analyzer = RepoAnalyzer(args.repository, token=args.token)
+    analyzer = RepoAnalyzer(args.repository, token=github_token)
     
         # 디렉토리 먼저 생성
     output_dir = args.output
