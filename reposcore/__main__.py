@@ -30,6 +30,12 @@ def check_github_repo_exists(repo: str) -> bool:
     """Check if the given GitHub repository exists"""
     url = f"https://api.github.com/repos/{repo}" # 예: 'oss2025hnu/reposcore-py' → 'https://api.github.com/repos/oss2025hnu/reposcore-py'
     response = requests.get(url) # API 요청 보내기
+    # 💡 인증 없이 요청했을 때 제한 초과 안내
+    if response.status_code == 403:
+        print("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
+        print("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
+        return False
+    
     return response.status_code == 200 # 응답코드가 정상이면 저장소가 존재함
 
 def parse_arguments() -> argparse.Namespace:
@@ -98,17 +104,16 @@ def main():
         sys.exit(1)
 
     # (Optional) Check if the repository exists on GitHub
-
     if not check_github_repo_exists(args.repository):
         print(f"입력한 저장소 '{args.repository}' 가 깃허브에 존재하지 않을 수 있음.")
     
     print(f"저장소 분석 시작 : {args.repository}")
 
     # Initialize analyzer
-
     analyzer = RepoAnalyzer(args.repository, token=github_token)
+
     
-        # 디렉토리 먼저 생성
+    # 디렉토리 먼저 생성
     output_dir = args.output
     os.makedirs(output_dir, exist_ok=True)
 
@@ -124,10 +129,17 @@ def main():
     else:
         print("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
         analyzer.collect_PRs_and_issues()
+        # ✅ 통신 실패했는지 확인
+        if not analyzer._data_collected:
+            print("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
+            print("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
+            sys.exit(1)
+
         import json
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
 
+    # ✅ 여기서 analyzer.participants 가 비어 있더라도 점수는 0점으로 처리되어 결과 출력
     try:
         # Calculate scores
         scores = analyzer.calculate_scores()
