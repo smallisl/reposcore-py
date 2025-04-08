@@ -4,6 +4,7 @@ from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import requests
 from prettytable import PrettyTable
 
 from .utils.retry_request import retry_request
@@ -13,14 +14,18 @@ class RepoAnalyzer:
 
     def __init__(self, repo_path: str, token: Optional[str] = None):
         self.repo_path = repo_path
-        self.token = token
         self.participants: Dict = {}
         self.score_weights = {
             'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
             'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
             'issue_comments': 1
         }
+
         self._data_collected = True  # 기본값을 True로 설정
+
+        self.SESSION = requests.Session()
+        self.SESSION.headers.update({'Authorization': token}) if token else None
+
 
     def collect_PRs_and_issues(self) -> None:
         """
@@ -33,6 +38,7 @@ class RepoAnalyzer:
 
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
+
 
             response = retry_request(url,
                                      max_retries=3,
@@ -102,6 +108,7 @@ class RepoAnalyzer:
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
+
         total_score_sum = 0
 
         for participant, activities in self.participants.items():
