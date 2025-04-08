@@ -85,3 +85,4 @@ while True:
     else:
         print("오류 발생:", response.status_code)
         break
+```
