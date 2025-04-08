@@ -39,8 +39,9 @@ class RepoAnalyzer:
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
+            
 
-            response = retry_request(url,
+            response = retry_request(self.SESSION, url,
                                      max_retries=3,
                                      params={
                                          'state': 'all',
