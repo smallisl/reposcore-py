@@ -2,6 +2,7 @@ import os
 import tempfile
 from reposcore.analyzer import RepoAnalyzer
 
+
 def test_example_calculate_scores():
     analyzer = RepoAnalyzer("oss2025hnu/reposcore-py")
     analyzer.participants = {
@@ -88,29 +89,64 @@ def test_example_calculate_scores():
     }
 
     scores = analyzer.calculate_scores()
-    assert scores["test_user1"] == 25, "test_user1 결과값이 일치하지 않습니다."
-    assert scores["test_user2"] == 0, "test_user2 결과값이 일치하지 않습니다."
-    assert scores["test_user3"] == 79, "test_user3 결과값이 일치하지 않습니다."
-    assert scores["test_user4"] == 8, "test_user4 결과값이 일치하지 않습니다."
-    assert scores["test_user5"] == 6, "test_user5 결과값이 일치하지 않습니다."
-    assert scores["test_user6"] == 0, "test_user6 결과값이 일치하지 않습니다."
-    assert scores["test_user7"] == 72, "test_user7 결과값이 일치하지 않습니다."
-    assert scores["test_user8"] == 25, "test_user8 결과값이 일치하지 않습니다."
-    assert scores["test_user9"] == 21, "test_user9 결과값이 일치하지 않습니다."
-    assert scores["test_user10"] == 24, "test_user10 결과값이 일치하지 않습니다."
+    assert scores["test_user1"]['total'] == 25, "test_user1 결과값이 일치하지 않습니다."
+    assert scores["test_user2"]['total'] == 0, "test_user2 결과값이 일치하지 않습니다."
+    assert scores["test_user3"]['total'] == 79, "test_user3 결과값이 일치하지 않습니다."
+    assert scores["test_user4"]['total'] == 8, "test_user4 결과값이 일치하지 않습니다."
+    assert scores["test_user5"]['total'] == 6, "test_user5 결과값이 일치하지 않습니다."
+    assert scores["test_user6"]['total'] == 0, "test_user6 결과값이 일치하지 않습니다."
+    assert scores["test_user7"]['total'] == 72, "test_user7 결과값이 일치하지 않습니다."
+    assert scores["test_user8"]['total'] == 25, "test_user8 결과값이 일치하지 않습니다."
+    assert scores["test_user9"]['total'] == 21, "test_user9 결과값이 일치하지 않습니다."
+    assert scores["test_user10"]['total'] == 24, "test_user10 결과값이 일치하지 않습니다."
 
 def test_generate_table_creates_file():
     analyzer = RepoAnalyzer("dummy/repo")
-    scores = {"alice": 10, "bob": 20}
+    scores = {
+        "alice": {
+            "p_enhancement": 3,
+            "p_bug": 0,
+            "p_documentation": 3,
+            "i_enhancement": 3,
+            "i_bug": 0,
+            "i_documentation": 3,
+        },
+        "bob": {
+            "p_enhancement": 3,
+            "p_bug": 0,
+            "p_documentation": 3,
+            "i_enhancement": 3,
+            "i_bug": 0,
+            "i_documentation": 3,
+        }
+    }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, "test_table.csv")
         analyzer.generate_table(scores, save_path=filepath)
         assert os.path.isfile(filepath), "CSV 파일이 생성되지 않았습니다."
 
+
 def test_generate_chart_creates_file():
     analyzer = RepoAnalyzer("dummy/repo")
-    scores = {"alice": 10, "bob": 20}
+    scores = {
+        "alice": {
+            "p_enhancement": 3,
+            "p_bug": 0,
+            "p_documentation": 3,
+            "i_enhancement": 3,
+            "i_bug": 0,
+            "i_documentation": 3,
+        },
+        "bob": {
+            "p_enhancement": 3,
+            "p_bug": 0,
+            "p_documentation": 3,
+            "i_enhancement": 3,
+            "i_bug": 0,
+            "i_documentation": 3,
+        }
+    }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, "test_chart.png")
