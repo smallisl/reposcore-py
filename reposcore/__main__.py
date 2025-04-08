@@ -18,6 +18,12 @@ def check_github_repo_exists(repo: str) -> bool:
     """Check if the given GitHub repository exists"""
     url = f"https://api.github.com/repos/{repo}" # 예: 'oss2025hnu/reposcore-py' → 'https://api.github.com/repos/oss2025hnu/reposcore-py'
     response = requests.get(url) # API 요청 보내기
+    # 💡 인증 없이 요청했을 때 제한 초과 안내
+    if response.status_code == 403:
+        print("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
+        print("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
+        return False
+    
     return response.status_code == 200 # 응답코드가 정상이면 저장소가 존재함
 
 def parse_arguments() -> argparse.Namespace:
@@ -110,6 +116,12 @@ def main():
         import json
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+
+    # ⚠️ 수집된 데이터가 없으면 종료
+    if not analyzer.participants:
+        print("⚠️ 참여자 데이터를 수집하지 못했습니다. 결과 파일을 생성하지 않습니다.")
+        print("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한으로 인해 실패했을 수 있습니다.")
+        sys.exit(1)
 
     try:
         # Calculate scores

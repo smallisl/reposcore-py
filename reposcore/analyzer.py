@@ -40,7 +40,12 @@ class RepoAnalyzer:
                                         'per_page': per_page,
                                         'page': page
                                     })
-            if response.status_code != 200:
+            if response.status_code == 403:
+                print("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
+                print("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
+                print("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
+                return
+            elif response.status_code != 200:
                 print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 return
 
@@ -83,9 +88,15 @@ class RepoAnalyzer:
             else:
                 break
 
-        print("\n참여자별 활동 내역 (participants 딕셔너리):")
-        for user, info in self.participants.items():
-            print(f"{user}: {info}")
+        if not self.participants:
+            print("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
+            print("⚠️ 점수 계산 및 결과 생성을 건너뜁니다.")
+            self._data_collected = False
+        else:
+            self._data_collected = True
+            print("\n참여자별 활동 내역 (participants 딕셔너리):")
+            for user, info in self.participants.items():
+                print(f"{user}: {info}")
 
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
@@ -127,11 +138,17 @@ class RepoAnalyzer:
 
     def generate_table(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
+        if not scores:
+            print("⚠️ 저장할 테이블이 없습니다. 파일 생성을 건너뜁니다.")
+            return
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.to_csv(save_path)
 
     def generate_text(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
+        if not scores:
+            print("⚠️ 저장할 텍스트 테이블이 없습니다. 파일 생성을 건너뜁니다.")
+            return
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR","document PR","feat/bug issue","document issue","total"]
         for name, score in scores.items():
@@ -150,6 +167,9 @@ class RepoAnalyzer:
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""
+        if not scores:
+            print("⚠️ 시각화할 점수가 없습니다. 차트 생성을 건너뜁니다.")
+            return
         # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
         sorted_scores = sorted([(key, value.get('total',0)) for (key,value) in scores.items()], key=lambda item: item[1], reverse=True)
         
