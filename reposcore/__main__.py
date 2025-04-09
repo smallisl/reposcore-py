@@ -112,11 +112,6 @@ def main():
     # Initialize analyzer
     analyzer = RepoAnalyzer(args.repository, token=github_token)
 
-    
-    # 디렉토리 먼저 생성
-    output_dir = args.output
-    os.makedirs(output_dir, exist_ok=True)
-
     # 캐시 파일 경로 설정
     cache_path = os.path.join(output_dir, "cache.json")
 
