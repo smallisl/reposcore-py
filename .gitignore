@@ -174,4 +174,4 @@ cython_debug/
 *.csv
 *.png
 cache.json
-
+table.txt

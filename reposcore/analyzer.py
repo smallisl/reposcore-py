@@ -122,7 +122,7 @@ class RepoAnalyzer:
             i_d = activities.get('i_documentation', 0)
             i_fb = i_f + i_b
 
-            p_valid = p_fb + min(p_d, 3 * p_fb)
+            p_valid = p_fb + min(p_d, 3 * max(1, p_fb))
             i_valid = min(i_fb + i_d, 4 * p_valid)
 
             p_fb_at = min(p_fb, p_valid)
@@ -153,9 +153,12 @@ class RepoAnalyzer:
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def generate_table(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores"""
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.to_csv(save_path)
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "name"}, inplace=True)
+        df.to_csv(save_path, index=False)
+
     def calculate_averages(self, scores):
         """
         점수 딕셔너리에서 각 카테고리별 평균을 계산합니다.
@@ -193,6 +196,7 @@ class RepoAnalyzer:
         averages["rate"] = total_rates / num_participants if num_participants > 0 else 0
         
         return averages
+      
     def generate_text(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores with averages"""
         table = PrettyTable()
@@ -242,6 +246,7 @@ class RepoAnalyzer:
 
         plt.xlabel('Participation Score')
         plt.title('Repository Participation Scores')
+        plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
         for bar in bars:
