@@ -1,14 +1,5 @@
 import re
-
-# requests 설치 확인 및 자동 설치
-try:
-    import requests
-except ImportError:
-    import subprocess
-    import sys
-    print("requests 패키지가 설치되지 않아 설치를 시도합니다...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests"])
-    import requests
+import requests
 
 def validate_repo_format(repo: str) -> bool:
     pattern = r'^[\w\-]+/[\w\-]+$'
