@@ -135,6 +135,9 @@ def main():
     output_dir = args.output
     os.makedirs(output_dir, exist_ok=True)
 
+    
+    # 캐시 파일 경로 설정
+
     cache_path = os.path.join(output_dir, "cache.json")
 
     if args.use_cache and os.path.exists(cache_path):
@@ -155,7 +158,10 @@ def main():
 
     try:
         scores = analyzer.calculate_scores()
+
         os.makedirs(output_dir, exist_ok=True)
+
+        # Generate outputs based on format
 
         if args.format in ["table", "text", "all"]:
             table_path = os.path.join(output_dir, "table.csv")
