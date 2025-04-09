@@ -65,11 +65,12 @@ def parse_arguments() -> argparse.Namespace:
         action="help",
         help="도움말 표시 후 종료"
     )
-    # repository 인자를 optional로 설정 (nargs="?")
+    # repository 인자를 optional로 설정(nargs="?") 및 default="" 지정
     parser.add_argument(
         "repository",
         type=str,
         nargs="?",
+        default="",
         metavar="owner/repo",
         help="분석할 GitHub 저장소 (형식: '소유자/저장소'). --check-limit 옵션 사용 시 생략 가능"
     )
