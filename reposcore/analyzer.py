@@ -155,9 +155,10 @@ class RepoAnalyzer:
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def generate_table(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores"""
         df = pd.DataFrame.from_dict(scores, orient="index")
-        df.to_csv(save_path)
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "name"}, inplace=True)
+        df.to_csv(save_path, index=False)
 
     def generate_text(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
