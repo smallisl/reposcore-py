@@ -194,6 +194,7 @@ class RepoAnalyzer:
 
         plt.xlabel('Participation Score')
         plt.title('Repository Participation Scores')
+        plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
         for bar in bars:
