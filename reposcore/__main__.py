@@ -151,17 +151,17 @@ def main():
         if args.format in ["table", "text", "all"]:
             table_path = os.path.join(output_dir, "table.csv")
             analyzer.generate_table(scores, save_path=table_path)
-            print(f"\nThe table has been saved as 'table.csv' in the '{output_dir}' directory.")
+            print(f"\n csv 저장 완료: {table_path}")
 
         if args.format in ["text", "all"]:
             txt_path = os.path.join(output_dir, "table.txt")
             analyzer.generate_text(scores,txt_path)
-            print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
+            print(f"\n 텍스트 저장 완료: {txt_path}")
 
         if args.format in ["chart", "all"]:
             chart_path = os.path.join(output_dir, "chart.png")
             analyzer.generate_chart(scores, save_path=chart_path)
-            print(f"\nThe chart has been saved as 'chart.png' in the '{output_dir}' directory.")
+            print(f"\n 차트 이미지가 저장되었습니다: {chart_path}")
 
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
