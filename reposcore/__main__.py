@@ -69,7 +69,7 @@ def parse_arguments() -> argparse.Namespace:
         "--format",
         choices=["table", "text", "chart", "all"],
         default="all",
-        metavar="{table,text,chart,both}",
+        metavar="{table,text,chart,all}",
         help = "결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
     )
 
