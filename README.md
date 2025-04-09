@@ -13,10 +13,6 @@ A CLI for scoring student participation in an open-source class repo, implemente
 
 **⚠️ 반드시 저장소 최상위 디렉토리에서 실행해야 합니다. (python -m reposcore 명령은 상대 경로 기준으로 동작합니다.)**
 
-```bash
-python -m reposcore [OPTIONS]
-```
-
 ```
 usage: python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}]
 
