@@ -41,7 +41,8 @@ class RepoAnalyzer:
 
             
 
-            response = retry_request(self.SESSION, url,
+            response = retry_request(self.SESSION, 
+                                     url,
                                      max_retries=3,
                                      params={
                                          'state': 'all',
@@ -123,7 +124,7 @@ class RepoAnalyzer:
             i_d = activities.get('i_documentation', 0)
             i_fb = i_f + i_b
 
-            p_valid = p_fb + min(p_d, 3 * p_fb)
+            p_valid = p_fb + min(p_d, 3 * max(1, p_fb))
             i_valid = min(i_fb + i_d, 4 * p_valid)
 
             p_fb_at = min(p_fb, p_valid)
@@ -154,9 +155,10 @@ class RepoAnalyzer:
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def generate_table(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores"""
         df = pd.DataFrame.from_dict(scores, orient="index")
-        df.to_csv(save_path)
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "name"}, inplace=True)
+        df.to_csv(save_path, index=False)
 
     def generate_text(self, scores: Dict, save_path) -> None:
         """Generate a table of participation scores"""
