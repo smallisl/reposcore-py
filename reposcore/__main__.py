@@ -5,11 +5,12 @@ import sys
 import os
 import requests
 from .analyzer import RepoAnalyzer
+from typing import Optional
 
 # 깃허브 저장소 기본 URL
 GITHUB_BASE_URL = "https://github.com/"
 
-#친절한 오류 메시지를 출력할 ArgumentParser 클래스
+# 친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         # --format 옵션에서만 오류 메시지를 사용자 정의
@@ -23,26 +24,41 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
     
 def validate_repo_format(repo: str) -> bool:
     """Check if the repo input follows 'owner/repo' format"""
-    parts = repo.split("/") # '/'를 기준으로 분리 (예: 'oss2025hnu/reposcore-py' → ['oss2025hnu', 'reposcore-py'])
-    return len(parts) == 2 and all(parts) # 두 개의 부분(owner, repo)이 존재해야 하고, 비어 있으면 안 됨
+    parts = repo.split("/")  # '/'를 기준으로 분리 (예: 'oss2025hnu/reposcore-py' → ['oss2025hnu', 'reposcore-py'])
+    return len(parts) == 2 and all(parts)  # 두 개의 부분(owner, repo)이 존재해야 하고, 비어 있으면 안 됨
 
 def check_github_repo_exists(repo: str) -> bool:
     """Check if the given GitHub repository exists"""
-    url = f"https://api.github.com/repos/{repo}" # 예: 'oss2025hnu/reposcore-py' → 'https://api.github.com/repos/oss2025hnu/reposcore-py'
-    response = requests.get(url) # API 요청 보내기
+    url = f"https://api.github.com/repos/{repo}"  # 예: 'oss2025hnu/reposcore-py' → 'https://api.github.com/repos/oss2025hnu/reposcore-py'
+    response = requests.get(url)  # API 요청 보내기
     # 💡 인증 없이 요청했을 때 제한 초과 안내
     if response.status_code == 403:
         print("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
         print("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
         return False
     
-    return response.status_code == 200 # 응답코드가 정상이면 저장소가 존재함
+    return response.status_code == 200  # 응답코드가 정상이면 저장소가 존재함
+
+def check_rate_limit(token: Optional[str] = None) -> None:
+    """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인하고 출력하는 함수"""
+    headers = {}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    response = requests.get("https://api.github.com/rate_limit", headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        core = data.get("resources", {}).get("core", {})
+        remaining = core.get("remaining", "N/A")
+        limit = core.get("limit", "N/A")
+        print(f"GitHub API 요청 가능 횟수: {remaining} / {limit}")
+    else:
+        print(f"API 요청 제한 정보를 가져오는데 실패했습니다 (status code: {response.status_code}).")
 
 def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = FriendlyArgumentParser(
         prog="python -m reposcore",
-        usage="python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}]",
+        usage="python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}] [--check-limit]",
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False  # 기본 --help 옵션을 비활성화
     )
@@ -69,24 +85,26 @@ def parse_arguments() -> argparse.Namespace:
         "--format",
         choices=["table", "text", "chart", "all"],
         default="all",
-        metavar="{table,text,chart,both}",
-        help = "결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
+        metavar="{table,text,chart,all}",
+        help="결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
     )
-
     parser.add_argument(
         "--use-cache",
         action="store_true",
         help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
     )
-
     parser.add_argument(
-        '--token',
+        "--token",
         type=str,
-        help='API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰'
+        help="API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰"
+    )
+    parser.add_argument(
+        "--check-limit",
+        action="store_true",
+        help="현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다."
     )
 
     return parser.parse_args()
-
 
 def main():
     """Main execution function"""
@@ -97,6 +115,11 @@ def main():
         github_token = os.getenv('GITHUB_TOKEN')
     elif args.token == '-':
         github_token = sys.stdin.readline().strip()
+
+    # --check-limit 옵션 처리: 옵션이 있으면 API 요청 한도 정보 확인 후 종료
+    if args.check_limit:
+        check_rate_limit(token=github_token)
+        sys.exit(0)
 
     # Validate repo format
     if not validate_repo_format(args.repository):
@@ -112,7 +135,6 @@ def main():
     # Initialize analyzer
     analyzer = RepoAnalyzer(args.repository, token=github_token)
 
-    
     # 디렉토리 먼저 생성
     output_dir = args.output
     os.makedirs(output_dir, exist_ok=True)
@@ -129,8 +151,8 @@ def main():
     else:
         print("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
         analyzer.collect_PRs_and_issues()
-        # ✅ 통신 실패했는지 확인
-        if not analyzer._data_collected:
+        # 통신 실패 시 처리
+        if not getattr(analyzer, "_data_collected", True):
             print("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
             print("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
             sys.exit(1)
@@ -139,7 +161,6 @@ def main():
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
 
-    # ✅ 여기서 analyzer.participants 가 비어 있더라도 점수는 0점으로 처리되어 결과 출력
     try:
         # Calculate scores
         scores = analyzer.calculate_scores()
@@ -155,7 +176,7 @@ def main():
 
         if args.format in ["text", "all"]:
             txt_path = os.path.join(output_dir, "table.txt")
-            analyzer.generate_text(scores,txt_path)
+            analyzer.generate_text(scores, txt_path)
             print(f"\nThe table has been saved as 'table.txt' in the '{output_dir}' directory.")
 
         if args.format in ["chart", "all"]:
