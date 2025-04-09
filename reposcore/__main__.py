@@ -159,8 +159,6 @@ def main():
     try:
         scores = analyzer.calculate_scores()
 
-        os.makedirs(output_dir, exist_ok=True)
-
         # Generate outputs based on format
 
         if args.format in ["table", "text", "all"]:
