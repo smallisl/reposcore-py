@@ -112,6 +112,9 @@ def main():
     # Initialize analyzer
     analyzer = RepoAnalyzer(args.repository, token=github_token)
 
+    output_dir = args.output
+    os.makedirs(output_dir, exist_ok=True)
+    
     # 캐시 파일 경로 설정
     cache_path = os.path.join(output_dir, "cache.json")
 
@@ -138,9 +141,6 @@ def main():
     try:
         # Calculate scores
         scores = analyzer.calculate_scores()
-
-        output_dir = args.output
-        os.makedirs(output_dir, exist_ok=True)
 
         # Generate outputs based on format
         if args.format in ["table", "text", "all"]:
