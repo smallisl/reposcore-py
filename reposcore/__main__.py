@@ -109,18 +109,17 @@ def main():
     args = parse_arguments()
     github_token = args.token
 
-    # 토큰 값은 커맨드라인 옵션, 환경변수, 또는 표준 입력에서 받아올 수 있음
     if not args.token:
         github_token = os.getenv('GITHUB_TOKEN')
     elif args.token == '-':
         github_token = sys.stdin.readline().strip()
 
-    # --check-limit 옵션 처리: 옵션이 주어지면 repository 인자 없이도 실행됨.
+    # --check-limit 옵션 처리: 이 옵션이 있으면 repository 인자 없이 실행됨.
     if args.check_limit:
         check_rate_limit(token=github_token)
         sys.exit(0)
 
-    # --check-limit 옵션이 없을 경우, repository 인자는 필수
+    # --check-limit 옵션이 없으면 repository 인자는 필수임.
     if not args.repository or not validate_repo_format(args.repository):
         print("오류: 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
         sys.exit(1)
