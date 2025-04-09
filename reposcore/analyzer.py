@@ -39,10 +39,8 @@ class RepoAnalyzer:
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
-            
 
-            response = retry_request(self.SESSION, 
-                                     url,
+            response = retry_request(self.SESSION,url,
                                      max_retries=3,
                                      params={
                                          'state': 'all',
@@ -158,25 +156,76 @@ class RepoAnalyzer:
         """Generate a table of participation scores"""
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.to_csv(save_path)
-
+    def calculate_averages(self, scores):
+        """
+        점수 딕셔너리에서 각 카테고리별 평균을 계산합니다.
+        
+        Args:
+            scores: 사용자별 점수를 담은 딕셔너리
+            
+        Returns:
+            각 카테고리별 평균을 담은 딕셔너리
+        """
+        if not scores:
+            return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
+        
+        num_participants = len(scores)
+        
+        # 합계를 저장할 딕셔너리 초기화
+        totals = {
+            "feat/bug PR": 0,
+            "document PR": 0,
+            "feat/bug issue": 0,
+            "document issue": 0,
+            "total": 0
+        }
+        
+        # 각 카테고리별로 합계 계산
+        for participant, score_data in scores.items():
+            for category in totals.keys():
+                totals[category] += score_data[category]
+        
+        # 평균 계산
+        averages = {category: total / num_participants for category, total in totals.items()}
+        
+        # 평균 총점을 기준으로 비율 계산하지 않고, 평균 비율 계산
+        total_rates = sum(score_data["rate"] for score_data in scores.values())
+        averages["rate"] = total_rates / num_participants if num_participants > 0 else 0
+        
+        return averages
     def generate_text(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores"""
+        """Generate a table of participation scores with averages"""
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "feat/bug issue", "document issue", "total", "rate"]
+        
+        # 평균 계산
+        averages = self.calculate_averages(scores)
+        
+        # 평균 행 추가
+        table.add_row([
+            "avg",
+            round(averages["feat/bug PR"], 1),
+            round(averages["document PR"], 1),
+            round(averages["feat/bug issue"], 1),
+            round(averages["document issue"], 1),
+            round(averages["total"], 1),
+            f'{averages["rate"]:.1f}%'
+        ])
+        
+        # 각 참여자의 점수 행 추가
         for name, score in scores.items():
-            table.add_row(
-                [name,
-                 score["feat/bug PR"],
-                 score["document PR"],
-                 score['feat/bug issue'],
-                 score['document issue'],
-                 score['total'],
-                 f'{score["rate"]:.1f}%']
-            )
+            table.add_row([
+                name,
+                score["feat/bug PR"],
+                score["document PR"],
+                score['feat/bug issue'],
+                score['document issue'],
+                score['total'],
+                f'{score["rate"]:.1f}%'
+            ])
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
-
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         """Generate a visualization of participation scores"""
         # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
