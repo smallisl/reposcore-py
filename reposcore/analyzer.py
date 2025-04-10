@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 from typing import Dict, Optional
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 from prettytable import PrettyTable
-
 from .utils.retry_request import retry_request
 
 class RepoAnalyzer:
@@ -16,8 +14,8 @@ class RepoAnalyzer:
         self.repo_path = repo_path
         self.participants: Dict = {}
         self.score_weights = {
-            'PRs': 1,  # 이 부분은 merge된 PR 및 정상 이슈 갯수만 세기 위해 임시로 1로 유지
-            'issues_created': 1,
+            'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
+            'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
             'issue_comments': 1
         }
 
@@ -28,14 +26,10 @@ class RepoAnalyzer:
 
     def collect_PRs_and_issues(self) -> None:
         """
-        GitHub 저장소의 PR 및 이슈를 수집하여 점수에 반영
-
-        - PR: 병합된 PR만 점수 부여 (merged_at != None)
-        - Issue: open / reopened / completed 상태만 점수 부여
-            * open: state_reason == None
-            * reopened: state_reason == 'reopened'
-            * completed: state_reason == 'completed'
-            * not_planned 상태 이슈는 점수 제외
+        하나의 API 호출로 GitHub 이슈 목록을 가져오고,
+        pull_request 필드가 있으면 PR로, 없으면 issue로 간주.
+        PR의 경우, 실제로 병합된 경우만 점수에 반영.
+        이슈는 open / reopened / completed 상태만 점수에 반영합니다.
         """
         page = 1
         per_page = 100
@@ -51,9 +45,10 @@ class RepoAnalyzer:
                                          'per_page': per_page,
                                          'page': page
                                      })
-
             if response.status_code == 403:
                 print("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
+                print("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
+                print("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
                 self._data_collected = False
                 return
             elif response.status_code != 200:
@@ -78,7 +73,7 @@ class RepoAnalyzer:
                     }
 
                 labels = item.get('labels', [])
-                label_names = [label.get('name', '').lower() for label in labels if label.get('name')]
+                label_names = [label.get('name', '') for label in labels if label.get('name')]
 
                 state_reason = item.get('state_reason')
 
@@ -108,30 +103,29 @@ class RepoAnalyzer:
 
         if not self.participants:
             print("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
+            print("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
         else:
-            print("\n✅ 참여자별 활동 내역 (participants 딕셔너리):")
+            print("\n참여자별 활동 내역 (participants 딕셔너리):")
             for user, info in self.participants.items():
                 print(f"{user}: {info}")
 
     def calculate_scores(self) -> Dict:
-        """Calculate participation scores"""
+        """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
+
         total_score_sum = 0
 
         for participant, activities in self.participants.items():
-            # PR
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
             p_d = activities.get('p_documentation', 0)
             p_fb = p_f + p_b
 
-            # 이슈
             i_f = activities.get('i_enhancement', 0)
             i_b = activities.get('i_bug', 0)
             i_d = activities.get('i_documentation', 0)
             i_fb = i_f + i_b
 
-            # 점수 공식 (README 수식 준수)
             p_valid = p_fb + min(p_d, 3 * max(1, p_fb))
             i_valid = min(i_fb + i_d, 4 * p_valid)
 
@@ -153,13 +147,39 @@ class RepoAnalyzer:
 
             total_score_sum += S
 
-        # 참여율 계산
+        # 참여율(rate) 계산 및 추가
         for participant in scores:
             total = scores[participant]["total"]
             rate = (total / total_score_sum) * 100 if total_score_sum > 0 else 0
             scores[participant]["rate"] = round(rate, 1)
 
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
+
+    def calculate_averages(self, scores):
+        """
+        점수 딕셔너리에서 각 카테고리별 평균을 계산합니다.
+        """
+        if not scores:
+            return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
+
+        num_participants = len(scores)
+        totals = {
+            "feat/bug PR": 0,
+            "document PR": 0,
+            "feat/bug issue": 0,
+            "document issue": 0,
+            "total": 0
+        }
+
+        for participant, score_data in scores.items():
+            for category in totals.keys():
+                totals[category] += score_data[category]
+
+        averages = {category: total / num_participants for category, total in totals.items()}
+        total_rates = sum(score_data["rate"] for score_data in scores.values())
+        averages["rate"] = total_rates / num_participants if num_participants > 0 else 0
+
+        return averages
 
     def generate_table(self, scores: Dict, save_path) -> None:
         df = pd.DataFrame.from_dict(scores, orient="index")
@@ -171,14 +191,29 @@ class RepoAnalyzer:
     def generate_text(self, scores: Dict, save_path) -> None:
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "feat/bug issue", "document issue", "total", "rate"]
+
+        # 평균 계산
+        averages = self.calculate_averages(scores)
+
+        # 평균 행 추가
+        table.add_row([
+            "avg",
+            round(averages["feat/bug PR"], 1),
+            round(averages["document PR"], 1),
+            round(averages["feat/bug issue"], 1),
+            round(averages["document issue"], 1),
+            round(averages["total"], 1),
+            f'{averages["rate"]:.1f}%'
+        ])
+
         for name, score in scores.items():
             table.add_row(
                 [name,
                  score["feat/bug PR"],
                  score["document PR"],
-                 score["feat/bug issue"],
-                 score["document issue"],
-                 score["total"],
+                 score['feat/bug issue'],
+                 score['document issue'],
+                 score['total'],
                  f'{score["rate"]:.1f}%']
             )
 
