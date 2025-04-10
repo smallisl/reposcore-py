@@ -20,22 +20,28 @@ make requirements
 
 **⚠️ 반드시 저장소 최상위 디렉토리에서 실행해야 합니다. (python -m reposcore 명령은 상대 경로 기준으로 동작합니다.)**
 
+```bash
+python -m reposcore [OPTIONS]
 ```
-usage: python -m reposcore [-h] owner/repo [--output dir_name] [--format {table,text,chart,all}]
+
+```
+usage: python -m reposcore [-h] [owner/repo] [--output dir_name] [--format {table,text,chart,all}] [--check-limit]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
 positional arguments:
-  owner/repo            분석할 GitHub 저장소 (형식: '소유자/저장소')
+  owner/repo            분석할 GitHub 저장소 (형식: '소유자/저장소'). --check-limit 옵션 사용 시
+                        생략 가능
 
 options:
   -h, --help            도움말 표시 후 종료
   --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
-  --format {table,text,chart,both}
+  --format {table,text,chart,all}
                         결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart',
                         모두 : 'all')
   --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
   --token TOKEN         API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰
+  --check-limit         현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다.
 ```
 
 ## Test
@@ -64,6 +70,9 @@ $I_d^* = I_{\text{valid}} - I_{fb}^* ~~\quad$ 남은 개수에서 문서 이슈 
 
 최종 점수 계산 공식:\
 $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
+
+## GitHub API 가이드
+👉 [GitHub API 가이드](docs/github_api_guide.md) 문서를 참고 부탁드립니다.
 
 ## 토큰 생성 방법
 👉 [토큰 생성 방법](docs/github-token-guide.md) 문서를 참고 부탁드립니다.

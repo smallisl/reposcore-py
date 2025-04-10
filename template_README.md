@@ -55,9 +55,11 @@ $I_d^* = I_{\text{valid}} - I_{fb}^* ~~\quad$ 남은 개수에서 문서 이슈 
 최종 점수 계산 공식:\
 $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
 
+## GitHub API 가이드
+👉 [GitHub API 가이드](docs/github_api_guide.md) 문서를 참고 부탁드립니다.
+
 ## 토큰 생성 방법
 👉 [토큰 생성 방법](docs/github-token-guide.md) 문서를 참고 부탁드립니다.
 
 ## 프로젝트 작성 시 주의사항
 👉 [프로젝트 작성 시 주의사항](docs/project_guidelines.md) 문서를 참고 부탁드립니다.
-
