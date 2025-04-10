@@ -5,7 +5,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 from prettytable import PrettyTable
+from datetime import datetime
 from .utils.retry_request import retry_request
+
+def log(message: str):
+    now = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    print(f"{now} {message}")
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
@@ -46,13 +51,13 @@ class RepoAnalyzer:
                                          'page': page
                                      })
             if response.status_code == 403:
-                print("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
-                print("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
-                print("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
+                log("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
+                log("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
+                log("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
                 self._data_collected = False
                 return
             elif response.status_code != 200:
-                print(f"⚠️ GitHub API 요청 실패: {response.status_code}")
+                log(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 self._data_collected = False
                 return
 
@@ -102,12 +107,12 @@ class RepoAnalyzer:
                 break
 
         if not self.participants:
-            print("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
-            print("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
+            log("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
+            log("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
         else:
-            print("\n참여자별 활동 내역 (participants 딕셔너리):")
+            log("\n참여자별 활동 내역 (participants 딕셔너리):")
             for user, info in self.participants.items():
-                print(f"{user}: {info}")
+                log(f"{user}: {info}")
 
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
@@ -182,7 +187,7 @@ class RepoAnalyzer:
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
         df.to_csv(save_path, index=False)
-        print(f"📊 CSV 결과 저장 완료: {save_path}")
+        log(f"📊 CSV 결과 저장 완료: {save_path}")
 
     def generate_text(self, scores: Dict, save_path) -> None:
         table = PrettyTable()
@@ -215,7 +220,7 @@ class RepoAnalyzer:
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
-        print(f"📝 텍스트 결과 저장 완료: {save_path}")
+        log(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
         sorted_scores = sorted([(key, value.get('total', 0)) for (key, value) in scores.items()], key=lambda item: item[1], reverse=True)
@@ -243,4 +248,4 @@ class RepoAnalyzer:
 
         plt.tight_layout(pad=2)
         plt.savefig(save_path)
-        print(f"📈 차트 저장 완료: {save_path}")
+        log(f"📈 차트 저장 완료: {save_path}")
