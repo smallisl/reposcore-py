@@ -16,22 +16,21 @@ class RepoAnalyzer:
         self.repo_path = repo_path
         self.participants: Dict = {}
         self.score_weights = {
-            'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
-            'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
+            'PRs': 1, # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
+            'issues_created': 1, # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
             'issue_comments': 1
         }
 
-        self._data_collected = True  # 기본값을 True로 설정
+        self._data_collected = True # 기본값을 True로 설정
 
         self.SESSION = requests.Session()
         self.SESSION.headers.update({'Authorization': token}) if token else None
 
-
     def collect_PRs_and_issues(self) -> None:
         """
-        하나의 API 호출로 GitHub 이슈 목록을 가져오고,
-        pull_request 필드가 있으면 PR로, 없으면 issue로 간주.
-        PR의 경우, 실제로 병합된 경우만 점수에 반영.
+        GitHub 저장소의 PR + 정상적으로 닫힌 이슈만 수집하여 점수에 반영
+        - PR: 병합된 PR만 점수 부여
+        - Issue: state_reason == 'completed' 인 이슈만 점수 부여
         """
         page = 1
         per_page = 100
@@ -39,9 +38,7 @@ class RepoAnalyzer:
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
-            
-
-            response = retry_request(self.SESSION, 
+            response = retry_request(self.SESSION,
                                      url,
                                      max_retries=3,
                                      params={
@@ -49,10 +46,9 @@ class RepoAnalyzer:
                                          'per_page': per_page,
                                          'page': page
                                      })
+
             if response.status_code == 403:
                 print("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
-                print("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
-                print("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
                 self._data_collected = False
                 return
             elif response.status_code != 200:
@@ -77,8 +73,11 @@ class RepoAnalyzer:
                     }
 
                 labels = item.get('labels', [])
-                label_names = [label.get('name', '') for label in labels if label.get('name')]
+                label_names = [label.get('name', '').lower() for label in labels if label.get('name')]
 
+                state_reason = item.get('state_reason')
+
+                # PR 처리 (병합된 PR만)
                 if 'pull_request' in item:
                     merged_at = item.get('pull_request', {}).get('merged_at')
                     if merged_at:
@@ -86,13 +85,16 @@ class RepoAnalyzer:
                             key = f'p_{label}'
                             if key in self.participants[author]:
                                 self.participants[author][key] += 1
-                else:
-                    for label in label_names:
-                        key = f'i_{label}'
-                        if key in self.participants[author]:
-                            self.participants[author][key] += 1
 
-            # 'link'가 없으면 False 처리
+                # 이슈 처리 (state_reason == 'completed' 인 이슈만)
+                else:
+                    if state_reason == 'completed':
+                        for label in label_names:
+                            key = f'i_{label}'
+                            if key in self.participants[author]:
+                                self.participants[author][key] += 1
+
+            # 다음 페이지 검사
             link_header = response.headers.get('link', '')
             if 'rel="next"' in link_header:
                 page += 1
@@ -101,29 +103,30 @@ class RepoAnalyzer:
 
         if not self.participants:
             print("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
-            print("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
         else:
-            print("\n참여자별 활동 내역 (participants 딕셔너리):")
+            print("\n✅ 참여자별 활동 내역 (participants 딕셔너리):")
             for user, info in self.participants.items():
                 print(f"{user}: {info}")
 
     def calculate_scores(self) -> Dict:
-        """Calculate participation scores for each contributor using the refactored formula"""
+        """Calculate participation scores"""
         scores = {}
-
         total_score_sum = 0
 
         for participant, activities in self.participants.items():
+            # PR
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
             p_d = activities.get('p_documentation', 0)
             p_fb = p_f + p_b
 
+            # 이슈
             i_f = activities.get('i_enhancement', 0)
             i_b = activities.get('i_bug', 0)
             i_d = activities.get('i_documentation', 0)
             i_fb = i_f + i_b
 
+            # 점수 공식 (README 수식 준수)
             p_valid = p_fb + min(p_d, 3 * max(1, p_fb))
             i_valid = min(i_fb + i_d, 4 * p_valid)
 
@@ -145,13 +148,12 @@ class RepoAnalyzer:
 
             total_score_sum += S
 
-        # 참여율(rate) 계산 및 추가
+        # 참여율 계산
         for participant in scores:
             total = scores[participant]["total"]
             rate = (total / total_score_sum) * 100 if total_score_sum > 0 else 0
             scores[participant]["rate"] = round(rate, 1)
 
-        # 내림차순 정렬
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def generate_table(self, scores: Dict, save_path) -> None:
@@ -159,9 +161,9 @@ class RepoAnalyzer:
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
         df.to_csv(save_path, index=False)
+        print(f"📊 CSV 결과 저장 완료: {save_path}")
 
     def generate_text(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores"""
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "feat/bug issue", "document issue", "total", "rate"]
         for name, score in scores.items():
@@ -169,21 +171,18 @@ class RepoAnalyzer:
                 [name,
                  score["feat/bug PR"],
                  score["document PR"],
-                 score['feat/bug issue'],
-                 score['document issue'],
-                 score['total'],
+                 score["feat/bug issue"],
+                 score["document issue"],
+                 score["total"],
                  f'{score["rate"]:.1f}%']
             )
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
+        print(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
-        """Generate a visualization of participation scores"""
-        # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
         sorted_scores = sorted([(key, value.get('total', 0)) for (key, value) in scores.items()], key=lambda item: item[1], reverse=True)
-
-        # 정렬된 결과에서 참여자와 점수를 분리
         participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
 
         num_participants = len(participants)
@@ -208,3 +207,4 @@ class RepoAnalyzer:
 
         plt.tight_layout(pad=2)
         plt.savefig(save_path)
+        print(f"📈 차트 저장 완료: {save_path}")
