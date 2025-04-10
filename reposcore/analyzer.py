@@ -86,7 +86,7 @@ class RepoAnalyzer:
                             if key in self.participants[author]:
                                 self.participants[author][key] += 1
 
-                # 이슈 처리 (open / reopened / completed 만 포함)
+                # 이슈 처리 (open / reopened / completed 만 포함, not planned 제외)
                 else:
                     if state_reason in ('completed', 'reopened', None):
                         for label in label_names:
@@ -112,7 +112,6 @@ class RepoAnalyzer:
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
-
         total_score_sum = 0
 
         for participant, activities in self.participants.items():
@@ -147,7 +146,6 @@ class RepoAnalyzer:
 
             total_score_sum += S
 
-        # 참여율(rate) 계산 및 추가
         for participant in scores:
             total = scores[participant]["total"]
             rate = (total / total_score_sum) * 100 if total_score_sum > 0 else 0
@@ -156,9 +154,7 @@ class RepoAnalyzer:
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def calculate_averages(self, scores):
-        """
-        점수 딕셔너리에서 각 카테고리별 평균을 계산합니다.
-        """
+        """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
             return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
 
@@ -207,15 +203,15 @@ class RepoAnalyzer:
         ])
 
         for name, score in scores.items():
-            table.add_row(
-                [name,
-                 score["feat/bug PR"],
-                 score["document PR"],
-                 score['feat/bug issue'],
-                 score['document issue'],
-                 score['total'],
-                 f'{score["rate"]:.1f}%']
-            )
+            table.add_row([
+                name,
+                score["feat/bug PR"],
+                score["document PR"],
+                score['feat/bug issue'],
+                score['document issue'],
+                score['total'],
+                f'{score["rate"]:.1f}%'
+            ])
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
