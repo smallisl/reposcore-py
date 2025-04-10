@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 from typing import Dict, Optional
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 from prettytable import PrettyTable
-
 from .utils.retry_request import retry_request
 
 class RepoAnalyzer:
@@ -26,12 +24,12 @@ class RepoAnalyzer:
         self.SESSION = requests.Session()
         self.SESSION.headers.update({'Authorization': token}) if token else None
 
-
     def collect_PRs_and_issues(self) -> None:
         """
         하나의 API 호출로 GitHub 이슈 목록을 가져오고,
         pull_request 필드가 있으면 PR로, 없으면 issue로 간주.
         PR의 경우, 실제로 병합된 경우만 점수에 반영.
+        이슈는 open / reopened / completed 상태만 점수에 반영합니다.
         """
         page = 1
         per_page = 100
@@ -39,8 +37,8 @@ class RepoAnalyzer:
         while True:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
-
-            response = retry_request(self.SESSION,url,
+            response = retry_request(self.SESSION,
+                                     url,
                                      max_retries=3,
                                      params={
                                          'state': 'all',
@@ -77,6 +75,9 @@ class RepoAnalyzer:
                 labels = item.get('labels', [])
                 label_names = [label.get('name', '') for label in labels if label.get('name')]
 
+                state_reason = item.get('state_reason')
+
+                # PR 처리 (병합된 PR만)
                 if 'pull_request' in item:
                     merged_at = item.get('pull_request', {}).get('merged_at')
                     if merged_at:
@@ -84,13 +85,16 @@ class RepoAnalyzer:
                             key = f'p_{label}'
                             if key in self.participants[author]:
                                 self.participants[author][key] += 1
-                else:
-                    for label in label_names:
-                        key = f'i_{label}'
-                        if key in self.participants[author]:
-                            self.participants[author][key] += 1
 
-            # 'link'가 없으면 False 처리
+                # 이슈 처리 (open / reopened / completed 만 포함, not planned 제외)
+                else:
+                    if state_reason in ('completed', 'reopened', None):
+                        for label in label_names:
+                            key = f'i_{label}'
+                            if key in self.participants[author]:
+                                self.participants[author][key] += 1
+
+            # 다음 페이지 검사
             link_header = response.headers.get('link', '')
             if 'rel="next"' in link_header:
                 page += 1
@@ -108,7 +112,6 @@ class RepoAnalyzer:
     def calculate_scores(self) -> Dict:
         """Calculate participation scores for each contributor using the refactored formula"""
         scores = {}
-
         total_score_sum = 0
 
         for participant, activities in self.participants.items():
@@ -143,38 +146,19 @@ class RepoAnalyzer:
 
             total_score_sum += S
 
-        # 참여율(rate) 계산 및 추가
         for participant in scores:
             total = scores[participant]["total"]
             rate = (total / total_score_sum) * 100 if total_score_sum > 0 else 0
             scores[participant]["rate"] = round(rate, 1)
 
-        # 내림차순 정렬
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
-    def generate_table(self, scores: Dict, save_path) -> None:
-        df = pd.DataFrame.from_dict(scores, orient="index")
-        df.to_csv(save_path)
-        df.reset_index(inplace=True)
-        df.rename(columns={"index": "name"}, inplace=True)
-        df.to_csv(save_path, index=False)
-
     def calculate_averages(self, scores):
-        """
-        점수 딕셔너리에서 각 카테고리별 평균을 계산합니다.
-        
-        Args:
-            scores: 사용자별 점수를 담은 딕셔너리
-            
-        Returns:
-            각 카테고리별 평균을 담은 딕셔너리
-        """
+        """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
             return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
-        
+
         num_participants = len(scores)
-        
-        # 합계를 저장할 딕셔너리 초기화
         totals = {
             "feat/bug PR": 0,
             "document PR": 0,
@@ -182,29 +166,31 @@ class RepoAnalyzer:
             "document issue": 0,
             "total": 0
         }
-        
-        # 각 카테고리별로 합계 계산
+
         for participant, score_data in scores.items():
             for category in totals.keys():
                 totals[category] += score_data[category]
-        
-        # 평균 계산
+
         averages = {category: total / num_participants for category, total in totals.items()}
-        
-        # 평균 총점을 기준으로 비율 계산하지 않고, 평균 비율 계산
         total_rates = sum(score_data["rate"] for score_data in scores.values())
         averages["rate"] = total_rates / num_participants if num_participants > 0 else 0
-        
+
         return averages
-      
+
+    def generate_table(self, scores: Dict, save_path) -> None:
+        df = pd.DataFrame.from_dict(scores, orient="index")
+        df.reset_index(inplace=True)
+        df.rename(columns={"index": "name"}, inplace=True)
+        df.to_csv(save_path, index=False)
+        print(f"📊 CSV 결과 저장 완료: {save_path}")
+
     def generate_text(self, scores: Dict, save_path) -> None:
-        """Generate a table of participation scores with averages"""
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "feat/bug issue", "document issue", "total", "rate"]
-        
+
         # 평균 계산
         averages = self.calculate_averages(scores)
-        
+
         # 평균 행 추가
         table.add_row([
             "avg",
@@ -215,8 +201,7 @@ class RepoAnalyzer:
             round(averages["total"], 1),
             f'{averages["rate"]:.1f}%'
         ])
-        
-        # 각 참여자의 점수 행 추가
+
         for name, score in scores.items():
             table.add_row([
                 name,
@@ -230,12 +215,10 @@ class RepoAnalyzer:
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
-    def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
-        """Generate a visualization of participation scores"""
-        # scores 딕셔너리의 항목들을 점수를 기준으로 내림차순 정렬
-        sorted_scores = sorted([(key, value.get('total', 0)) for (key, value) in scores.items()], key=lambda item: item[1], reverse=True)
+        print(f"📝 텍스트 결과 저장 완료: {save_path}")
 
-        # 정렬된 결과에서 참여자와 점수를 분리
+    def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
+        sorted_scores = sorted([(key, value.get('total', 0)) for (key, value) in scores.items()], key=lambda item: item[1], reverse=True)
         participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
 
         num_participants = len(participants)
@@ -260,3 +243,4 @@ class RepoAnalyzer:
 
         plt.tight_layout(pad=2)
         plt.savefig(save_path)
+        print(f"📈 차트 저장 완료: {save_path}")
