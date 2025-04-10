@@ -6,6 +6,11 @@ import os
 import requests
 from .analyzer import RepoAnalyzer
 from typing import Optional
+from datetime import datetime
+
+def log(message: str):
+    now = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    print(f"{now} {message}")
 
 # 깃허브 저장소 기본 URL
 GITHUB_BASE_URL = "https://github.com/"
@@ -15,8 +20,8 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         # --format 옵션에서만 오류 메시지를 사용자 정의
         if '--format' in message:
-            print(f"❌ 인자 오류: {message}")
-            print("사용 가능한 --format 값: table, text, chart, all")
+            log(f"❌ 인자 오류: {message}")
+            log("사용 가능한 --format 값: table, text, chart, all")
         else:
             super().error(message)
         sys.exit(2)
@@ -32,8 +37,8 @@ def check_github_repo_exists(repo: str) -> bool:
     response = requests.get(url)
     # 인증 없이 요청했을 때 제한 초과 안내
     if response.status_code == 403:
-        print("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
-        print("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
+        log("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
+        log("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
         return False
     return response.status_code == 200
 
@@ -48,9 +53,9 @@ def check_rate_limit(token: Optional[str] = None) -> None:
         core = data.get("resources", {}).get("core", {})
         remaining = core.get("remaining", "N/A")
         limit = core.get("limit", "N/A")
-        print(f"GitHub API 요청 가능 횟수: {remaining} / {limit}")
+        log(f"GitHub API 요청 가능 횟수: {remaining} / {limit}")
     else:
-        print(f"API 요청 제한 정보를 가져오는데 실패했습니다 (status code: {response.status_code}).")
+        log(f"API 요청 제한 정보를 가져오는데 실패했습니다 (status code: {response.status_code}).")
 
 def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
@@ -122,13 +127,13 @@ def main():
 
     # --check-limit 옵션이 없으면 repository 인자는 필수임.
     if not args.repository or not validate_repo_format(args.repository):
-        print("오류: 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
+        log("오류: 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
         sys.exit(1)
 
     if not check_github_repo_exists(args.repository):
-        print(f"입력한 저장소 '{args.repository}'가 깃허브에 존재하지 않을 수 있음.")
+        log(f"입력한 저장소 '{args.repository}'가 깃허브에 존재하지 않을 수 있음.")
 
-    print(f"저장소 분석 시작: {args.repository}")
+    log(f"저장소 분석 시작: {args.repository}")
 
     analyzer = RepoAnalyzer(args.repository, token=github_token)
 
@@ -141,16 +146,16 @@ def main():
     cache_path = os.path.join(output_dir, "cache.json")
 
     if args.use_cache and os.path.exists(cache_path):
-        print("✅ 캐시 파일이 존재합니다. 캐시에서 데이터를 불러옵니다.")
+        log("✅ 캐시 파일이 존재합니다. 캐시에서 데이터를 불러옵니다.")
         import json
         with open(cache_path, "r", encoding="utf-8") as f:
             analyzer.participants = json.load(f)
     else:
-        print("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
+        log("🔄 캐시를 사용하지 않거나 캐시 파일이 없습니다. GitHub API로 데이터를 수집합니다.")
         analyzer.collect_PRs_and_issues()
         if not getattr(analyzer, "_data_collected", True):
-            print("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
-            print("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
+            log("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
+            log("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
             sys.exit(1)
         import json
         with open(cache_path, "w", encoding="utf-8") as f:
@@ -164,20 +169,20 @@ def main():
         if args.format in ["table", "text", "all"]:
             table_path = os.path.join(output_dir, "table.csv")
             analyzer.generate_table(scores, save_path=table_path)
-            print(f"\n csv 저장 완료: {table_path}")
+            log(f"\n csv 저장 완료: {table_path}")
 
         if args.format in ["text", "all"]:
             txt_path = os.path.join(output_dir, "table.txt")
             analyzer.generate_text(scores,txt_path)
-            print(f"\n 텍스트 저장 완료: {txt_path}")
+            log(f"\n 텍스트 저장 완료: {txt_path}")
             
         if args.format in ["chart", "all"]:
             chart_path = os.path.join(output_dir, "chart.png")
             analyzer.generate_chart(scores, save_path=chart_path)
-            print(f"\n 차트 이미지가 저장되었습니다: {chart_path}")
+            log(f"\n 차트 이미지가 저장되었습니다: {chart_path}")
 
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
+        log(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
