@@ -16,21 +16,26 @@ class RepoAnalyzer:
         self.repo_path = repo_path
         self.participants: Dict = {}
         self.score_weights = {
-            'PRs': 1, # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
-            'issues_created': 1, # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
+            'PRs': 1,  # 이 부분은 merge된 PR 및 정상 이슈 갯수만 세기 위해 임시로 1로 유지
+            'issues_created': 1,
             'issue_comments': 1
         }
 
-        self._data_collected = True # 기본값을 True로 설정
+        self._data_collected = True  # 기본값을 True로 설정
 
         self.SESSION = requests.Session()
         self.SESSION.headers.update({'Authorization': token}) if token else None
 
     def collect_PRs_and_issues(self) -> None:
         """
-        GitHub 저장소의 PR + 정상적으로 닫힌 이슈만 수집하여 점수에 반영
-        - PR: 병합된 PR만 점수 부여
-        - Issue: state_reason == 'completed' 인 이슈만 점수 부여
+        GitHub 저장소의 PR 및 이슈를 수집하여 점수에 반영
+
+        - PR: 병합된 PR만 점수 부여 (merged_at != None)
+        - Issue: open / reopened / completed 상태만 점수 부여
+            * open: state_reason == None
+            * reopened: state_reason == 'reopened'
+            * completed: state_reason == 'completed'
+            * not_planned 상태 이슈는 점수 제외
         """
         page = 1
         per_page = 100
@@ -86,9 +91,9 @@ class RepoAnalyzer:
                             if key in self.participants[author]:
                                 self.participants[author][key] += 1
 
-                # 이슈 처리 (state_reason == 'completed' 인 이슈만)
+                # 이슈 처리 (open / reopened / completed 만 포함)
                 else:
-                    if state_reason == 'completed':
+                    if state_reason in ('completed', 'reopened', None):
                         for label in label_names:
                             key = f'i_{label}'
                             if key in self.participants[author]:
