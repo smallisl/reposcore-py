@@ -20,6 +20,7 @@ GITHUB_BASE_URL = "https://github.com/"
 class FriendlyArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         if '--format' in message:
+            # --format 옵션에서만 오류 메시지를 사용자 정의
             log(f"❌ 인자 오류: {message}")
             log("사용 가능한 --format 값: table, text, chart, all")
         else:
@@ -27,12 +28,12 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
         sys.exit(2)
 
 def validate_repo_format(repo: str) -> bool:
-    """저장소 입력이 'owner/repo' 형식인지 검사합니다."""
+    """Check if the repo input follows 'owner/repo' format"""
     parts = repo.split("/")
     return len(parts) == 2 and all(parts)
 
 def check_github_repo_exists(repo: str) -> bool:
-    """GitHub에 해당 저장소가 존재하는지 확인합니다."""
+    """Check if the given GitHub repository exists"""
     url = f"https://api.github.com/repos/{repo}"
     response = requests.get(url)
     if response.status_code == 403:
@@ -42,7 +43,7 @@ def check_github_repo_exists(repo: str) -> bool:
     return response.status_code == 200
 
 def check_rate_limit(token: Optional[str] = None) -> None:
-    """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다."""
+    """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인하고 출력하는 함수"""
     headers = {}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -57,7 +58,7 @@ def check_rate_limit(token: Optional[str] = None) -> None:
         log(f"API 요청 제한 정보를 가져오는데 실패했습니다 (status code: {response.status_code}).")
 
 def parse_arguments() -> argparse.Namespace:
-    """커맨드라인 인자를 파싱합니다."""
+    """커맨드라인 인자를 파싱하는 함수"""
     parser = FriendlyArgumentParser(
         prog="python -m reposcore",
         usage="python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table,text,chart,all}] [--check-limit]",
@@ -121,7 +122,7 @@ def merge_participants(overall: dict, new_data: dict) -> dict:
     return overall
 
 def main():
-    """메인 실행 함수"""
+    """Main execution function"""
     args = parse_arguments()
     github_token = args.token
 
@@ -130,7 +131,7 @@ def main():
     elif args.token == '-':
         github_token = sys.stdin.readline().strip()
 
-    # --check-limit 옵션 처리
+    # --check-limit 옵션 처리: 이 옵션이 있으면 repository 인자 없이 실행됨.
     if args.check_limit:
         check_rate_limit(token=github_token)
         sys.exit(0)
