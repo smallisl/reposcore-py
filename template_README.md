@@ -81,6 +81,9 @@ $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
 ## 토큰 생성 방법
 👉 [토큰 생성 방법](docs/github-token-guide.md) 문서를 참고 부탁드립니다.
 
+## 한국 시간대(Asia/Seoul) 설정 가이드
+👉 [한국 시간대(Asia/Seoul) 설정 가이드](docs/korean-timezone-guide.md) 문서를 참고 부탁드립니다.
+
 ## 프로젝트 작성 시 주의사항
 👉 [프로젝트 작성 시 주의사항](docs/project_guidelines.md) 문서를 참고 부탁드립니다.
 ```
