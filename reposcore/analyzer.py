@@ -8,9 +8,17 @@ from prettytable import PrettyTable
 from datetime import datetime
 from .utils.retry_request import retry_request
 
+import logging 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 def log(message: str):
-    now = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-    print(f"{now} {message}")
+    logging.info(message)
+
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
