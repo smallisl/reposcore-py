@@ -8,7 +8,8 @@ from prettytable import PrettyTable
 from datetime import datetime
 from .utils.retry_request import retry_request
 
-import logging 
+import logging
+import sys  
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,11 +20,29 @@ logging.basicConfig(
 def log(message: str):
     logging.info(message)
 
+def check_github_repo_exists(repo: str) -> bool:
+    """주어진 GitHub 저장소가 존재하는지 확인하는 함수"""
+    url = f"https://api.github.com/repos/{repo}"
+    response = requests.get(url)
+    
+    if response.status_code == 403:
+        log("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
+        log("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
+    elif response.status_code == 404:
+        log(f"⚠️ 저장소 '{repo}'가 존재하지 않습니다.")
+    elif response.status_code != 200:
+        log(f"⚠️ 요청 실패: {response.status_code}")
+
+    return response.status_code == 200
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
 
     def __init__(self, repo_path: str, token: Optional[str] = None):
+        if not check_github_repo_exists(repo_path):
+            log(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
+            sys.exit(1)  
+
         self.repo_path = repo_path
         self.participants: Dict = {}
         self.score = {
