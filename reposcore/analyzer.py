@@ -18,10 +18,11 @@ class RepoAnalyzer:
     def __init__(self, repo_path: str, token: Optional[str] = None):
         self.repo_path = repo_path
         self.participants: Dict = {}
-        self.score_weights = {
-            'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
-            'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
-            'issue_comments': 1
+        self.score = {
+            'feat_bug_pr': 3,
+            'doc_pr': 2,
+            'feat_bug_is': 2,
+            'doc_is': 1
         }
 
         self._data_collected = True  # 기본값을 True로 설정
@@ -139,14 +140,19 @@ class RepoAnalyzer:
             i_fb_at = min(i_fb, i_valid)
             i_d_at = i_valid - i_fb_at
 
-            S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
+            S = (
+                self.score['feat_bug_pr'] * p_fb_at +
+                self.score['doc_pr'] * p_d_at +
+                self.score['feat_bug_is'] * i_fb_at +
+                self.score['doc_is'] * i_d_at
+            )
 
             scores[participant] = {
-                "feat/bug PR": 3 * p_fb_at,
-                "document PR": 2 * p_d_at,
-                "feat/bug issue": 2 * i_fb_at,
-                "document issue": 1 * i_d_at,
-                "total": S
+                "feat/bug PR" : self.score['feat_bug_pr'] * p_fb_at,
+                "document PR" : self.score['doc_pr'] * p_d_at,
+                "feat/bug issue" : self.score['feat_bug_is'] * i_fb_at,
+                "document issue" : self.score['doc_is'] * i_d_at,
+                "total" : S
             }
 
             total_score_sum += S
