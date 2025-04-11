@@ -1,7 +1,4 @@
-아래는 `README.md` 파일에 추가된 내용을 반영한 전체 코드입니다. `--check-limit` 옵션과 `repository` 인자에 관한 사용법을 포함하여, `test-guide.md`와 관련된 링크도 업데이트된 형태로 추가했습니다.
-
-```markdown
-# reposcore-py 
+# reposcore-py
 A CLI for scoring student participation in an open-source class repo, implemented in Python.
 
 >
@@ -9,6 +6,7 @@ A CLI for scoring student participation in an open-source class repo, implemente
 > - 절대로 `README.md`의 내용을 직접 수정하지 말 것! (템플릿에서 자동으로 생성하는 스크립트 추가됨)
 > - 반드시 `template_README.md`의 내용을 수정한 후 `make readme` 실행하여 내용을 갱신해야 함.
 >
+
 
 ## Install dependencies
 
