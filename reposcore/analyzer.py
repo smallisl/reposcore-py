@@ -8,9 +8,17 @@ from prettytable import PrettyTable
 from datetime import datetime
 from .utils.retry_request import retry_request
 
+import logging 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 def log(message: str):
-    now = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
-    print(f"{now} {message}")
+    logging.info(message)
+
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
@@ -18,10 +26,11 @@ class RepoAnalyzer:
     def __init__(self, repo_path: str, token: Optional[str] = None):
         self.repo_path = repo_path
         self.participants: Dict = {}
-        self.score_weights = {
-            'PRs': 1,  # 이 부분은 merge된 PR의 PR 갯수, issues 갯수만 세기 위해 임시로 1로 변경
-            'issues_created': 1,  # 향후 배점이 필요할 경우 PRs: 0.4, issues: 0.3으로 바꿔주세요.
-            'issue_comments': 1
+        self.score = {
+            'feat_bug_pr': 3,
+            'doc_pr': 2,
+            'feat_bug_is': 2,
+            'doc_is': 1
         }
 
         self._data_collected = True  # 기본값을 True로 설정
@@ -54,6 +63,23 @@ class RepoAnalyzer:
                 log("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
                 log("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
                 log("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
+                self._data_collected = False
+                return
+            elif response.status_code == 404:
+                log(f"⚠️ 요청 실패 (404): 리포지토리({self.repo_path})가 존재하지 않습니다.")
+                self._data_collected = False
+                return
+            elif response.status_code == 500:
+                log("⚠️ 요청 실패 (500): GitHub 내부 서버 오류 발생!")
+                self._data_collected = False
+                return
+            elif response.status_code == 503:
+                log("⚠️ 요청 실패 (503): 서비스 불가")
+                self._data_collected = False
+                return
+            elif response.status_code == 422:
+                log("⚠️ 요청 실패 (422): 처리할 수 없는 컨텐츠")
+                log("⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
                 self._data_collected = False
                 return
             elif response.status_code != 200:
@@ -130,23 +156,28 @@ class RepoAnalyzer:
             i_d = activities.get('i_documentation', 0)
             i_fb = i_f + i_b
 
-            p_valid = p_fb + min(p_d, 3 * max(1, p_fb))
+            p_valid = p_fb + min(p_d, 3 * max(p_fb, 1))
             i_valid = min(i_fb + i_d, 4 * p_valid)
 
             p_fb_at = min(p_fb, p_valid)
-            p_d_at = p_valid - p_fb
+            p_d_at = p_valid - p_fb_at
 
             i_fb_at = min(i_fb, i_valid)
             i_d_at = i_valid - i_fb_at
 
-            S = 3 * p_fb_at + 2 * p_d_at + 2 * i_fb_at + 1 * i_d_at
+            S = (
+                self.score['feat_bug_pr'] * p_fb_at +
+                self.score['doc_pr'] * p_d_at +
+                self.score['feat_bug_is'] * i_fb_at +
+                self.score['doc_is'] * i_d_at
+            )
 
             scores[participant] = {
-                "feat/bug PR": 3 * p_fb_at,
-                "document PR": 2 * p_d_at,
-                "feat/bug issue": 2 * i_fb_at,
-                "document issue": 1 * i_d_at,
-                "total": S
+                "feat/bug PR" : self.score['feat_bug_pr'] * p_fb_at,
+                "document PR" : self.score['doc_pr'] * p_d_at,
+                "feat/bug issue" : self.score['feat_bug_is'] * i_fb_at,
+                "document issue" : self.score['doc_is'] * i_d_at,
+                "total" : S
             }
 
             total_score_sum += S

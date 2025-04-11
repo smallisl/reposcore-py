@@ -87,9 +87,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--format",
         choices=["table", "text", "chart", "all"],
-        default="all",
+        nargs='+',
+        default=["all"],
         metavar="{table,text,chart,all}",
-        help = "결과 출력 형식 선택 (테이블: 'table', 텍스트 : 'text', 차트: 'chart', 모두 : 'all')"
+        help = "결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart). 옵션: 'table', 'text', 'chart', 'all'"
     )
     parser.add_argument(
         "--use-cache",
@@ -187,20 +188,23 @@ def main():
 
     try:
         scores = aggregator.calculate_scores()
+        formats = set(args.format)
 
         os.makedirs(args.output, exist_ok=True)
+        if "all" in formats:
+            formats =  {"table", "text", "chart"}
 
-        if args.format in ["table", "text", "all"]:
+        if "table" in formats:
             table_path = os.path.join(args.output, "table.csv")
             aggregator.generate_table(scores, save_path=table_path)
             log(f"\nCSV 저장 완료: {table_path}")
 
-        if args.format in ["text", "all"]:
+        if "text" in formats:
             txt_path = os.path.join(args.output, "table.txt")
             aggregator.generate_text(scores, txt_path)
             log(f"\n텍스트 저장 완료: {txt_path}")
 
-        if args.format in ["chart", "all"]:
+        if "chart" in formats:
             chart_path = os.path.join(args.output, "chart.png")
             aggregator.generate_chart(scores, save_path=chart_path)
             log(f"\n차트 이미지 저장 완료: {chart_path}")
