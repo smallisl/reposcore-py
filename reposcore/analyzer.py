@@ -229,24 +229,55 @@ class RepoAnalyzer:
         log(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
-        sorted_scores = sorted([(key, value.get('total', 0)) for (key, value) in scores.items()], key=lambda item: item[1], reverse=True)
+        sorted_scores = sorted(
+            [(key, value.get('total', 0)) for (key, value) in scores.items()],
+            key=lambda item: item[1],
+            reverse=True
+        )
         participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
-
         num_participants = len(participants)
         height = max(3., num_participants * 0.2)
 
         plt.figure(figsize=(10, height))
         bars = plt.barh(participants, scores_sorted, height=0.5)
 
+        # 점수에 따른 색상 매핑
+        for bar in bars:
+            score = bar.get_width()
+            if score == 100:
+                color = 'red'           # 100: 빨간색
+            elif 90 <= score < 100:
+                color = 'orchid'        # 90~99: 연보라색
+            elif 80 <= score < 90:
+                color = 'purple'        # 80~89: 보라색
+            elif 70 <= score < 80:
+                color = 'darkblue'      # 70~79: 진한 청색
+            elif 60 <= score < 70:
+                color = 'blue'          # 60~69: 청색
+            elif 50 <= score < 60:
+                color = 'green'         # 50~59: 진한 연두
+            elif 40 <= score < 50:
+                color = 'lightgreen'    # 40~49: 연두색
+            elif 30 <= score < 40:
+                color = 'lightgray'     # 30~39: 밝은 회색
+            elif 20 <= score < 30:
+                color = 'gray'          # 20~29: 중간 회색
+            elif 10 <= score < 20:
+                color = 'dimgray'       # 10~19: 어두운 회색
+            else:
+                color = 'black'         # 0~9: 검은색
+            bar.set_color(color)
+
         plt.xlabel('Participation Score')
         plt.title('Repository Participation Scores')
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
+        # 각 바의 오른쪽에 점수 표기
         for bar in bars:
             plt.text(
                 bar.get_width() + 0.2,
-                bar.get_y() + bar.get_height(),
+                bar.get_y() + bar.get_height()/2,
                 f'{int(bar.get_width())}',
                 va='center',
                 fontsize=9
