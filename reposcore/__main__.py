@@ -194,7 +194,7 @@ def main():
         scores = aggregator.calculate_scores()
         formats = set(args.format)
 
-         os.makedirs(args.output, exist_ok=True)
+        os.makedirs(args.output, exist_ok=True)
 
         os.makedirs(args.output, exist_ok=True)
         if "all" in formats:
