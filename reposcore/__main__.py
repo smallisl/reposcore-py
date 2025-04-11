@@ -167,6 +167,8 @@ def main():
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
         cache_path = os.path.join(args.output, cache_file_name)
         
+        os.makedirs(args.output, exist_ok=True)
+
         if args.use_cache and os.path.exists(cache_path):
             log(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.")
             with open(cache_path, "r", encoding="utf-8") as f:
@@ -181,6 +183,7 @@ def main():
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
         overall_participants = merge_participants(overall_participants, analyzer.participants)
+
         log(f"분석 완료: {repo}")
 
     # 병합된 데이터를 가지고 통합 분석을 진행합니다.
@@ -190,6 +193,8 @@ def main():
     try:
         scores = aggregator.calculate_scores()
         formats = set(args.format)
+
+         os.makedirs(args.output, exist_ok=True)
 
         os.makedirs(args.output, exist_ok=True)
         if "all" in formats:
