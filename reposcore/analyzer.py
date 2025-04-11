@@ -241,7 +241,7 @@ class RepoAnalyzer:
             plt.text(
                 bar.get_width() + 0.2,
                 bar.get_y() + bar.get_height(),
-                f'{bar.get_width():.1f}',
+                f'{int(bar.get_width())}',
                 va='center',
                 fontsize=9
             )
