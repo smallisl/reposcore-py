@@ -130,8 +130,8 @@ def main():
         log("오류: 저장소는 'owner/repo' 형식으로 입력해야 함. 예) 'oss2025hnu/reposcore-py'")
         sys.exit(1)
 
-    if not check_github_repo_exists(args.repository):
-        log(f"입력한 저장소 '{args.repository}'가 깃허브에 존재하지 않을 수 있음.")
+    # if not check_github_repo_exists(args.repository):
+    #     log(f"입력한 저장소 '{args.repository}'가 깃허브에 존재하지 않을 수 있음.")
 
     log(f"저장소 분석 시작: {args.repository}")
 
