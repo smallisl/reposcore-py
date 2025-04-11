@@ -57,6 +57,23 @@ class RepoAnalyzer:
                 log("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
                 self._data_collected = False
                 return
+            elif response.status_code == 404:
+                log(f"⚠️ 요청 실패 (404): 리포지토리({self.repo_path})가 존재하지 않습니다.")
+                self._data_collected = False
+                return
+            elif response.status_code == 500:
+                log("⚠️ 요청 실패 (500): GitHub 내부 서버 오류 발생!")
+                self._data_collected = False
+                return
+            elif response.status_code == 503:
+                log("⚠️ 요청 실패 (503): 서비스 불가")
+                self._data_collected = False
+                return
+            elif response.status_code == 422:
+                log("⚠️ 요청 실패 (422): 처리할 수 없는 컨텐츠")
+                log("⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
+                self._data_collected = False
+                return
             elif response.status_code != 200:
                 log(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 self._data_collected = False
