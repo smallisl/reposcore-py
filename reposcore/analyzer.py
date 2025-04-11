@@ -10,6 +10,7 @@ from .utils.retry_request import retry_request
 
 import logging
 import sys  
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -237,6 +238,11 @@ class RepoAnalyzer:
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
+
+        dir_path = os.path.dirname(save_path)
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
         df.to_csv(save_path, index=False)
         log(f"📊 CSV 결과 저장 완료: {save_path}")
 
@@ -268,6 +274,10 @@ class RepoAnalyzer:
                 score['total'],
                 f'{score["rate"]:.1f}%'
             ])
+        
+        dir_path = os.path.dirname(save_path)
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
         with open(save_path, 'w') as txt_file:
             txt_file.write(str(table))
@@ -327,6 +337,9 @@ class RepoAnalyzer:
                 va='center',
                 fontsize=9
             )
+
+        if not os.path.exists(save_path):
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         plt.tight_layout(pad=2)
         plt.savefig(save_path)
