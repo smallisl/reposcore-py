@@ -1,4 +1,4 @@
-.PHONY: test lint readme pre-commit
+.PHONY: test lint readme check-readme pre-commit clean
 
 PYTHON_MODULES := reposcore
 
@@ -28,8 +28,23 @@ test: requirements
 readme:
 	python scripts/generate_readme.py
 
+# README 상태 검사
+check-readme:
+	@echo "🔍 README.md 최신 상태 여부를 검사합니다..."
+	@cp README.md .README.bak
+	@python scripts/generate_readme.py
+	@if ! diff -q .README.bak README.md >/dev/null; then \
+		echo "❌ README.md가 template_README.md 기반 최신 상태가 아닙니다."; \
+		echo "👉 'make readme'를 실행해 주세요."; \
+		rm .README.bak; \
+		exit 1; \
+	else \
+		echo "✅ README.md는 최신 상태입니다."; \
+		rm .README.bak; \
+	fi
+
 # PR 전에 자동으로 README 검증
-pre-commit: readme
+pre-commit: check-readme
 
 # 불필요한 파일 정리
 clean:

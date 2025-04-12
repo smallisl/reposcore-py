@@ -86,4 +86,7 @@ $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
 
 ## 프로젝트 작성 시 주의사항
 👉 [프로젝트 작성 시 주의사항](docs/project_guidelines.md) 문서를 참고 부탁드립니다.
-```
+
+## README.md 최신 상태 여부 검사 가이드
+👉 [README.md 최신 상태 여부 검사 가이드](docs/readme_version_check_guide.md) 문서를 참고 부탁드립니다.
+
