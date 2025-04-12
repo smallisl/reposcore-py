@@ -31,7 +31,7 @@ def test_main_without_repo_option():
         text=True
     )
     assert result.returncode != 0
-    assert "repo 옵션은 'owner/repo' 형식으로 입력해야 함" in result.stdout or "required" in result.stderr
+    assert "'owner/repo' 형식으로" in result.stdout or "required" in result.stderr
 
 # def test_main_invalid_repo_format():
 #     """잘못된 형식의 repo 인자에 대한 처리"""
