@@ -80,7 +80,11 @@ class RepoAnalyzer:
                                          'per_page': per_page,
                                          'page': page
                                      })
-            if response.status_code == 403:
+            if response.status_code == 401:
+                log("❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.")
+                self._data_collected = False
+                return
+            elif response.status_code == 403:
                 log("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
                 log("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
                 log("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
