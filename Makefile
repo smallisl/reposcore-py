@@ -1,4 +1,4 @@
-.PHONY: test lint readme pre-commit
+.PHONY: test lint readme pre-commit clean
 
 PYTHON_MODULES := reposcore
 
@@ -25,7 +25,10 @@ test: requirements
 	$(PYTEST) tests
 
 # README 동기화
-readme:
+readme: README.md
+
+# README 자동 생성
+README.md: template_README.md scripts/generate_readme.py
 	python scripts/generate_readme.py
 
 # PR 전에 자동으로 README 검증
