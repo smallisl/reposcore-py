@@ -191,7 +191,6 @@ def main():
 
         os.makedirs(args.output, exist_ok=True)
 
-        os.makedirs(args.output, exist_ok=True)
         if "all" in formats:
             formats =  {"table", "text", "chart"}
 
