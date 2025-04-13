@@ -157,6 +157,11 @@ class RepoAnalyzer:
             log("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
             log("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
         else:
+            excluded_ids = {"kyahnu", "kyagrd"}
+            self.participants = {
+                user: info for user, info in self.participants.items()
+                if user not in excluded_ids
+            }
             log("\n참여자별 활동 내역 (participants 딕셔너리):")
             for user, info in self.participants.items():
                 log(f"{user}: {info}")
