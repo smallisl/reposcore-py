@@ -138,14 +138,9 @@ def main():
 
     repositories: List[str] = args.repository
     # 쉼표로 여러 저장소가 입력된 경우 분리
-    final_repositories = []
-    for repo in repositories:
-        if "," in repo:
-            final_repositories.extend([r.strip() for r in repo.split(",") if r.strip()])
-        else:
-            final_repositories.append(repo)
-    # 중복 제거
-    final_repositories = list(dict.fromkeys(final_repositories))
+    final_repositories = list(dict.fromkeys(
+    [r.strip() for repo in repositories for r in repo.split(",") if r.strip()]
+    ))
 
     # 각 저장소 유효성 검사
     for repo in final_repositories:
