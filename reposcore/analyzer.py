@@ -295,7 +295,7 @@ class RepoAnalyzer:
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
-    def generate_chart(self, scores: Dict, save_path: str = "results") -> None:
+    def generate_chart(self, scores: Dict, save_path: str = "results", show_grade: bool = False) -> None:
         plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
 
         sorted_scores = sorted(
@@ -336,6 +336,14 @@ class RepoAnalyzer:
             else:
                 color = 'black'  # 0~9: 검은색
             bar.set_color(color)
+        
+        if show_grade:
+            grade_boundaries = [90, 80, 70, 60, 50, 40]
+            grade_labels = ['A', 'B', 'C', 'D', 'E', 'F']
+            for grade, boundary in zip(grade_labels, grade_boundaries):
+                plt.axhline(y=boundary, color='black', linestyle='--', label=f'Grade {grade}')  # y축 평행 라인
+            plt.legend()
+
 
         plt.xlabel('Participation Score')
         plt.title('Repository Participation Scores')
@@ -354,7 +362,37 @@ class RepoAnalyzer:
 
         if not os.path.exists(save_path):
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
+        
+        chart_path_1 = os.path.join(save_path, "chart_participation.png")
         plt.tight_layout(pad=2)
-        plt.savefig(save_path)
-        logging.info(f"📈 차트 저장 완료: {save_path}")
+        plt.savefig(chart_path_1)
+        logging.info(f"📈 차트 저장 완료: {chart_path_1}")
+        plt.close()
+
+        if show_grade:
+            plt.figure(figsize=(10,height))
+            bars = plt.barh(participants, scores_sorted, height=0.5)
+
+            for grade, boundary in zip(grade_labels, grade_boundaries):
+                plt.axhline(y=boundary, color='black', linestyle='--', label=f'Grade {grade}')
+
+            plt.xlabel('[Participation Score')
+            plt.title('Repository Participation Scores with Grades')
+            plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
+            plt.gca().invert_yaxis()
+            plt.legend()
+
+            for bar in bars:
+                plt.text(
+                    bar.get_width() + 0.2,
+                    bar.get_y() + bar.get_height() / 2,
+                    f'{int(bar.get_width())}',
+                    va='center',
+                    fontsize=9
+                )
+
+            chart_path_2 = os.path.join(save_path, "chart_participation_with_grades.png")
+            plt.tight_layout(pad=2)
+            plt.savefig(chart_path_2)
+            logging.info(f"📈 차트 저장 완료: {chart_path_2}")
+            plt.close()
