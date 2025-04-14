@@ -291,7 +291,10 @@ class RepoAnalyzer:
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+        # 생성 날짜 및 시간 추가 (텍스트 파일 상단)
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         with open(save_path, 'w') as txt_file:
+            txt_file.write(f"Generated on: {current_time}\n\n")
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
@@ -341,6 +344,17 @@ class RepoAnalyzer:
         plt.title('Repository Participation Scores')
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
+
+        # 생성 날짜 및 시간 추가 (차트 왼쪽 상단)
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+        plt.text(
+            0.02, 0.98,  # 차트의 왼쪽 상단 (상대 좌표)
+            f"Generated on: {current_time}",
+            transform=plt.gca().transAxes,
+            fontsize=10,
+            verticalalignment='top',
+            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none')  # 가독성을 위해 배경 추가
+        )
 
         # 각 바의 오른쪽에 점수 표기
         for bar in bars:
