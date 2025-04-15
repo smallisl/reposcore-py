@@ -10,7 +10,7 @@ def validate_repo_format(repo: str) -> bool:
         return False
 
 def check_github_repo_exists(repo: str) -> bool:
-     url = f"https://api.github.com/repos/{repo}"
+    url = f"https://api.github.com/repos/{repo}"
     
     try:
         response = requests.get(url)
