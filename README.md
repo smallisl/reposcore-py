@@ -26,7 +26,7 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
-usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table,text,chart,all}] [--check-limit]
+usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table,text,chart,all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
@@ -40,6 +40,7 @@ options:
   --format {table,text,chart,all} [{table,text,chart,all} ...]
                         결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart). 옵션:
                         'table', 'text', 'chart', 'all'
+  --grade               차트에 등급 표시
   --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
   --token TOKEN         API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰
   --check-limit         현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다.
