@@ -135,7 +135,6 @@ def main():
     """Main execution function"""
     args = parse_arguments()
     github_token = args.token
-
     if not args.token:
         github_token = os.getenv('GITHUB_TOKEN')
     elif args.token == '-':
@@ -149,7 +148,7 @@ def main():
     repositories: List[str] = args.repository
     # 쉼표로 여러 저장소가 입력된 경우 분리
     final_repositories = list(dict.fromkeys(
-    [r.strip() for repo in repositories for r in repo.split(",") if r.strip()]
+        [r.strip() for repo in repositories for r in repo.split(",") if r.strip()]
     ))
 
     # 각 저장소 유효성 검사
@@ -163,15 +162,16 @@ def main():
     logging.info(f"저장소 분석 시작: {', '.join(final_repositories)}")
 
     overall_participants = {}
-
-    # 각 저장소별로 분석을 수행하고 participants 데이터를 병합합니다.
+    
+    #저장소별로 분석 후 '개별 결과'도 저장하기
     for repo in final_repositories:
         logging.info(f"분석 시작: {repo}")
+
         analyzer = RepoAnalyzer(repo, token=github_token)
         # 저장소별 캐시 파일 생성 (예: cache_oss2025hnu_reposcore-py.json)
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
         cache_path = os.path.join(args.output, cache_file_name)
-        
+
         os.makedirs(args.output, exist_ok=True)
 
         if args.use_cache and os.path.exists(cache_path):
@@ -187,38 +187,83 @@ def main():
                 sys.exit(1)
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+
+        try:
+            user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
+                if args.user_info and os.path.exists(args.user_info) else None
+
+            # 저장소별 aggregator 인스턴스 생성
+            repo_aggregator = RepoAnalyzer(repo, token=github_token)
+            repo_aggregator.participants = analyzer.participants
+
+            # 스코어 계산
+            repo_scores = repo_aggregator.calculate_scores(user_info)
+
+            # 출력 형식
+            formats = set(args.format)
+            if "all" in formats:
+                formats = {"table", "text", "chart"}
+
+            # 저장소별 폴더 생성 (owner/repo -> owner_repo)
+            repo_safe_name = repo.replace('/', '_')
+            repo_output_dir = os.path.join(args.output, repo_safe_name)
+            os.makedirs(repo_output_dir, exist_ok=True)
+
+            # 1) CSV 테이블 저장
+            if "table" in formats:
+                table_path = os.path.join(repo_output_dir, "table.csv")
+                repo_aggregator.generate_table(repo_scores, save_path=table_path)
+                logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
+
+            # 2) 텍스트 테이블 저장
+            if "text" in formats:
+                txt_path = os.path.join(repo_output_dir, "table.txt")
+                repo_aggregator.generate_text(repo_scores, txt_path)
+                logging.info(f"[개별 저장소] 텍스트 파일 저장 완료: {txt_path}")
+
+            # 3) 차트 이미지 저장
+            if "chart" in formats:
+                chart_path = os.path.join(repo_output_dir, "chart_participation.png")
+                repo_aggregator.generate_chart(repo_scores, save_path=chart_path)
+                logging.info(f"[개별 저장소] 차트 이미지 저장 완료: {chart_path}")
+
+        except Exception as e:
+            logging.error(f"저장소별 결과 생성 중 오류: {str(e)}")
+
         overall_participants = merge_participants(overall_participants, analyzer.participants)
-
         logging.info(f"분석 완료: {repo}")
-
     # 병합된 데이터를 가지고 통합 분석을 진행합니다.
     aggregator = RepoAnalyzer("multiple_repos", token=github_token)
     aggregator.participants = overall_participants
 
     try:
-        user_info = json.load(open(args.user_info, "r", encoding="utf-8")) if args.user_info and os.path.exists(args.user_info) else None
+        user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
+            if args.user_info and os.path.exists(args.user_info) else None
+
         scores = aggregator.calculate_scores(user_info)
         formats = set(args.format)
-
         os.makedirs(args.output, exist_ok=True)
 
         if "all" in formats:
-            formats =  {"table", "text", "chart"}
+            formats = {"table", "text", "chart"}
 
+        # 통합 CSV
         if "table" in formats:
             table_path = os.path.join(args.output, "table.csv")
             aggregator.generate_table(scores, save_path=table_path)
-            logging.info(f"\nCSV 저장 완료: {table_path}")
+            logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
+        # 통합 텍스트
         if "text" in formats:
             txt_path = os.path.join(args.output, "table.txt")
             aggregator.generate_text(scores, txt_path)
-            logging.info(f"\n텍스트 저장 완료: {txt_path}")
+            logging.info(f"\n[통합] 텍스트 저장 완료: {txt_path}")
 
+        # 통합 차트
         if "chart" in formats:
             aggregator.generate_chart(scores, save_path=args.output)
             chart_path = os.path.join(args.output, "chart_participation.png")
-            logging.info(f"\n차트 이미지 저장 완료: {chart_path}")
+            logging.info(f"\n[통합] 차트 이미지 저장 완료: {chart_path}")
 
     except Exception as e:
         logging.error(f"Error: {str(e)}")
