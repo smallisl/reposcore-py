@@ -335,6 +335,18 @@ class RepoAnalyzer:
         num_participants = len(participants)
         height = max(3., num_participants * 0.4)
 
+        # 등수 계산 (동점 처리)
+        ranks = []
+        current_rank = 1
+        prev_score = None
+        for i, score in enumerate(scores_sorted):
+            if score != prev_score:
+                ranks.append(current_rank)
+                prev_score = score
+            else:
+                ranks.append(ranks[-1])
+            current_rank += 1
+
         plt.figure(figsize=(10, height))
         bars = plt.barh(participants, scores_sorted, height=0.5)
 
@@ -350,7 +362,7 @@ class RepoAnalyzer:
         plt.gca().invert_yaxis()
 
         # 점수와 (선택적으로) 등급 표시
-        for bar, score in zip(bars, scores_sorted):
+        for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
             grade = ''
             if show_grade:
                 if score >= 90:
@@ -370,7 +382,7 @@ class RepoAnalyzer:
             plt.text(
                 bar.get_width() + 0.5,
                 bar.get_y() + bar.get_height() / 2,
-                f'{int(score)}{grade}',
+                f'{int(score)}{grade} ({ranks[i]}place)',
                 va='center',
                 fontsize=9
             )
