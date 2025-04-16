@@ -315,6 +315,7 @@ class RepoAnalyzer:
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str = "results", show_grade: bool = False) -> None:
+
         plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
 
         sorted_scores = sorted(
@@ -324,105 +325,53 @@ class RepoAnalyzer:
         )
         participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
         num_participants = len(participants)
-        height = max(3., num_participants * 0.2)
+        height = max(3., num_participants * 0.4)
 
         plt.figure(figsize=(10, height))
         bars = plt.barh(participants, scores_sorted, height=0.5)
 
-        # 점수에 따른 색상 매핑
-        for bar in bars:
-            score = bar.get_width()
-            if score == 100:
-                color = 'red'  # 100: 빨간색
-            elif 90 <= score < 100:
-                color = 'orchid'  # 90~99: 연보라색
-            elif 80 <= score < 90:
-                color = 'purple'  # 80~89: 보라색
-            elif 70 <= score < 80:
-                color = 'darkblue'  # 70~79: 진한 청색
-            elif 60 <= score < 70:
-                color = 'blue'  # 60~69: 청색
-            elif 50 <= score < 60:
-                color = 'green'  # 50~59: 진한 연두
-            elif 40 <= score < 50:
-                color = 'lightgreen'  # 40~49: 연두색
-            elif 30 <= score < 40:
-                color = 'lightgray'  # 30~39: 밝은 회색
-            elif 20 <= score < 30:
-                color = 'gray'  # 20~29: 중간 회색
-            elif 10 <= score < 20:
-                color = 'dimgray'  # 10~19: 어두운 회색
-            else:
-                color = 'black'  # 0~9: 검은색
-            bar.set_color(color)
-        
-        if show_grade:
-            grade_boundaries = [90, 80, 70, 60, 50, 40]
-            grade_labels = ['A', 'B', 'C', 'D', 'E', 'F']
-            for grade, boundary in zip(grade_labels, grade_boundaries):
-                plt.axhline(y=boundary, color='black', linestyle='--', label=f'Grade {grade}')  # y축 평행 라인
-            plt.legend()
-
+        # 동적 색상 매핑
+        norm = plt.Normalize(min(scores_sorted or [0]), max(scores_sorted or [1]))
+        colormap = cm.get_cmap('viridis')
+        for bar, score in zip(bars, scores_sorted):
+            bar.set_color(colormap(norm(score)))
 
         plt.xlabel('Participation Score')
         plt.title('Repository Participation Scores')
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
-        # 생성 날짜 및 시간 추가 (차트 왼쪽 상단)
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-        plt.text(
-            0.02, 0.98,  # 차트의 왼쪽 상단 (상대 좌표)
-            f"Generated on: {current_time}",
-            transform=plt.gca().transAxes,
-            fontsize=10,
-            verticalalignment='top',
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none')  # 가독성을 위해 배경 추가
-        )
+        # 점수와 (선택적으로) 등급 표시
+        for bar, score in zip(bars, scores_sorted):
+            grade = ''
+            if show_grade:
+                if score >= 90:
+                    grade = 'A'
+                elif score >= 80:
+                    grade = 'B'
+                elif score >= 70:
+                    grade = 'C'
+                elif score >= 60:
+                    grade = 'D'
+                elif score >= 50:
+                    grade = 'E'
+                else:
+                    grade = 'F'
+                grade = f" ({grade})"
 
-        # 각 바의 오른쪽에 점수 표기
-        for bar in bars:
             plt.text(
-                bar.get_width() + 0.2,
+                bar.get_width() + 0.5,
                 bar.get_y() + bar.get_height() / 2,
-                f'{int(bar.get_width())}',
+                f'{int(score)}{grade}',
                 va='center',
                 fontsize=9
             )
 
-        # 디렉토리 생성 (save_path는 디렉토리로 처리)
-        os.makedirs(save_path, exist_ok=True)
-        chart_path_1 = os.path.join(save_path, "chart_participation.png")
-        
+        if save_path and not os.path.exists(save_path):
+            os.makedirs(save_path, exist_ok=True)
+
+        chart_path = os.path.join(save_path, "chart_participation.png")
         plt.tight_layout(pad=2)
-        plt.savefig(chart_path_1)
-        logging.info(f"📈 차트 저장 완료: {chart_path_1}")
+        plt.savefig(chart_path)
+        logging.info(f"📈 차트 저장 완료: {chart_path}")
         plt.close()
-
-        if show_grade:
-            plt.figure(figsize=(10,height))
-            bars = plt.barh(participants, scores_sorted, height=0.5)
-
-            for grade, boundary in zip(grade_labels, grade_boundaries):
-                plt.axhline(y=boundary, color='black', linestyle='--', label=f'Grade {grade}')
-
-            plt.xlabel('[Participation Score')
-            plt.title('Repository Participation Scores with Grades')
-            plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
-            plt.gca().invert_yaxis()
-            plt.legend()
-
-            for bar in bars:
-                plt.text(
-                    bar.get_width() + 0.2,
-                    bar.get_y() + bar.get_height() / 2,
-                    f'{int(bar.get_width())}',
-                    va='center',
-                    fontsize=9
-                )
-
-            chart_path_2 = os.path.join(save_path, "chart_participation_with_grades.png")
-            plt.tight_layout(pad=2)
-            plt.savefig(chart_path_2)
-            logging.info(f"📈 차트 저장 완료: {chart_path_2}")
-            plt.close()
