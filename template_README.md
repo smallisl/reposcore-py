@@ -73,3 +73,5 @@ $S = 3P_{fb}^* + 2P_d^* + 2I_{fb}^* + 1I_d^*$
 ## README.md 자동 생성 및 최신 상태 유지 가이드
 👉 [README.md 자동 생성 및 최신 상태 유지 가이드](docs/readme_version_check_guide.md) 문서를 참고 부탁드립니다.
 
+## 차트 생성시 한글 폰트 깨짐 이슈 해결 가이드
+👉 [차트 생성시 한글 폰트 깨짐 이슈 해결 가이드](docs/chart-font-guide.md) 문서를 참고 부탁드립니다.
