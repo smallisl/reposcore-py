@@ -62,6 +62,7 @@ class RepoAnalyzer:
         self.score = {
             'feat_bug_pr': 3,
             'doc_pr': 2,
+            'typo_pr': 1,
             'feat_bug_is': 2,
             'doc_is': 1
         }
@@ -196,6 +197,7 @@ class RepoAnalyzer:
             p_f = activities.get('p_enhancement', 0)
             p_b = activities.get('p_bug', 0)
             p_d = activities.get('p_documentation', 0)
+            p_t = activities.get('p_typo', 0)
             p_fb = p_f + p_b
 
             i_f = activities.get('i_enhancement', 0)
@@ -215,6 +217,7 @@ class RepoAnalyzer:
             S = (
                     self.score['feat_bug_pr'] * p_fb_at +
                     self.score['doc_pr'] * p_d_at +
+                    self.score['typo_pr'] * p_t +
                     self.score['feat_bug_is'] * i_fb_at +
                     self.score['doc_is'] * i_d_at
             )
@@ -222,6 +225,7 @@ class RepoAnalyzer:
             scores[participant] = {
                 "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
                 "document PR": self.score['doc_pr'] * p_d_at,
+                "typo PR": self.score['typo_pr'] * p_t,
                 "feat/bug issue": self.score['feat_bug_is'] * i_fb_at,
                 "document issue": self.score['doc_is'] * i_d_at,
                 "total": S
@@ -248,6 +252,7 @@ class RepoAnalyzer:
         totals = {
             "feat/bug PR": 0,
             "document PR": 0,
+            "typo PR": 0,
             "feat/bug issue": 0,
             "document issue": 0,
             "total": 0
@@ -277,7 +282,7 @@ class RepoAnalyzer:
 
     def generate_text(self, scores: Dict, save_path) -> None:
         table = PrettyTable()
-        table.field_names = ["name", "feat/bug PR", "document PR", "feat/bug issue", "document issue", "total", "rate"]
+        table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
 
         # 평균 계산
         averages = self.calculate_averages(scores)
@@ -287,6 +292,7 @@ class RepoAnalyzer:
             "avg",
             round(averages["feat/bug PR"], 1),
             round(averages["document PR"], 1),
+            round(averages["typo PR"], 1),
             round(averages["feat/bug issue"], 1),
             round(averages["document issue"], 1),
             round(averages["total"], 1),
@@ -298,6 +304,7 @@ class RepoAnalyzer:
                 name,
                 score["feat/bug PR"],
                 score["document PR"],
+                score["typo PR"],
                 score['feat/bug issue'],
                 score['document issue'],
                 score['total'],
