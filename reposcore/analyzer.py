@@ -325,7 +325,7 @@ class RepoAnalyzer:
 
     def generate_chart(self, scores: Dict, save_path: str = "results", show_grade: bool = False) -> None:
         # 폰트 설정 변경
-        plt.rcParams['font.family'] = ['Arial', 'DejaVu Sans', 'sans-serif', 'NanumGothic']
+        plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
         
         sorted_scores = sorted(
             [(key, value.get('total', 0)) for (key, value) in scores.items()],
