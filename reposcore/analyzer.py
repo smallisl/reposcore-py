@@ -390,10 +390,10 @@ class RepoAnalyzer:
                 fontsize=9
             )
 
-        if not os.path.exists(save_path):
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        
+        # 디렉토리 생성 (save_path는 디렉토리로 처리)
+        os.makedirs(save_path, exist_ok=True)
         chart_path_1 = os.path.join(save_path, "chart_participation.png")
+        
         plt.tight_layout(pad=2)
         plt.savefig(chart_path_1)
         logging.info(f"📈 차트 저장 완료: {chart_path_1}")

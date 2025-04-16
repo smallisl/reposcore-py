@@ -216,8 +216,8 @@ def main():
             logging.info(f"\n텍스트 저장 완료: {txt_path}")
 
         if "chart" in formats:
-            chart_path = os.path.join(args.output, "chart.png")
-            aggregator.generate_chart(scores, save_path=chart_path)
+            aggregator.generate_chart(scores, save_path=args.output)
+            chart_path = os.path.join(args.output, "chart_participation.png")
             logging.info(f"\n차트 이미지 저장 완료: {chart_path}")
 
     except Exception as e:
