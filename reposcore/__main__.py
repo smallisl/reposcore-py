@@ -10,6 +10,15 @@ from datetime import datetime
 import json
 import logging
 
+# 포맷 상수
+FORMAT_TABLE = "table"
+FORMAT_TEXT = "text"
+FORMAT_CHART = "chart"
+FORMAT_ALL = "all"
+
+VALID_FORMATS = [FORMAT_TABLE, FORMAT_TEXT, FORMAT_CHART, FORMAT_ALL]
+VALID_FORMATS_DISPLAY = ", ".join(VALID_FORMATS)
+
 # logging 모듈 기본 설정 (analyzer.py와 동일한 설정)
 logging.basicConfig(
     stream=sys.stdout,
@@ -27,7 +36,7 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
         if '--format' in message:
             # --format 옵션에서만 오류 메시지를 사용자 정의
             logging.error(f"❌ 인자 오류: {message}")
-            logging.error("사용 가능한 --format 값: table, text, chart, all")
+            logging.error(f"사용 가능한 --format 값: {VALID_FORMATS_DISPLAY}")
         else:
             super().error(message)
         sys.exit(2)
@@ -66,7 +75,13 @@ def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = FriendlyArgumentParser(
         prog="python -m reposcore",
-        usage="python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table,text,chart,all}] [--check-limit] [--user-info path]",
+        usage=(
+            "python -m reposcore [-h] [owner/repo ...] "
+            "[--output dir_name] "
+            f"[--format {{{VALID_FORMATS_DISPLAY}}}] "
+            "[--check-limit] "
+            "[--user-info path]"
+        ),
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False
     )
@@ -92,11 +107,11 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--format",
-        choices=["table", "text", "chart", "all"],
+        choices=VALID_FORMATS,
         nargs='+',
-        default=["all"],
-        metavar="{table,text,chart,all}",
-        help = "결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart). 옵션: 'table', 'text', 'chart', 'all'"
+        default=[FORMAT_ALL],
+        metavar=f"{{{VALID_FORMATS_DISPLAY}}}",
+        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART}). 옵션: {VALID_FORMATS_DISPLAY}"
     )
     parser.add_argument(
         "--grade",
@@ -206,8 +221,8 @@ def main():
 
             # 출력 형식
             formats = set(args.format)
-            if "all" in formats:
-                formats = {"table", "text", "chart"}
+            if FORMAT_ALL in formats:
+                formats = {FORMAT_TABLE, FORMAT_TEXT, FORMAT_CHART}
 
             # 저장소별 폴더 생성 (owner/repo -> owner_repo)
             repo_safe_name = repo.replace('/', '_')
@@ -215,19 +230,19 @@ def main():
             os.makedirs(repo_output_dir, exist_ok=True)
 
             # 1) CSV 테이블 저장
-            if "table" in formats:
+            if FORMAT_TABLE in formats:
                 table_path = os.path.join(repo_output_dir, "table.csv")
                 repo_aggregator.generate_table(repo_scores, save_path=table_path)
                 logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
 
             # 2) 텍스트 테이블 저장
-            if "text" in formats:
+            if FORMAT_TEXT in formats:
                 txt_path = os.path.join(repo_output_dir, "table.txt")
                 repo_aggregator.generate_text(repo_scores, txt_path)
                 logging.info(f"[개별 저장소] 텍스트 파일 저장 완료: {txt_path}")
 
             # 3) 차트 이미지 저장
-            if "chart" in formats:
+            if FORMAT_CHART in formats:
                 chart_path = os.path.join(repo_output_dir, "chart_participation.png")
                 repo_aggregator.generate_chart(repo_scores, save_path=chart_path)
                 logging.info(f"[개별 저장소] 차트 이미지 저장 완료: {chart_path}")
@@ -249,23 +264,23 @@ def main():
         formats = set(args.format)
         os.makedirs(args.output, exist_ok=True)
 
-        if "all" in formats:
-            formats = {"table", "text", "chart"}
+        if FORMAT_ALL in formats:
+            formats = {FORMAT_TABLE, FORMAT_TEXT, FORMAT_CHART}
 
         # 통합 CSV
-        if "table" in formats:
+        if FORMAT_TABLE in formats:
             table_path = os.path.join(args.output, "table.csv")
             aggregator.generate_table(scores, save_path=table_path)
             logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
         # 통합 텍스트
-        if "text" in formats:
+        if FORMAT_TEXT in formats:
             txt_path = os.path.join(args.output, "table.txt")
             aggregator.generate_text(scores, txt_path)
             logging.info(f"\n[통합] 텍스트 저장 완료: {txt_path}")
 
         # 통합 차트
-        if "chart" in formats:
+        if FORMAT_CHART in formats:
             aggregator.generate_chart(scores, save_path=args.output, show_grade=args.grade)
             chart_path = os.path.join(args.output, "chart_participation.png")
             logging.info(f"\n[통합] 차트 이미지 저장 완료: {chart_path}")
