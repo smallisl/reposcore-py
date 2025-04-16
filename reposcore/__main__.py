@@ -118,6 +118,11 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         help="사용자 정보 파일의 경로"
     )
+    parser.add_argument(
+        "--grade",
+        action="store_true",
+        help="차트에 등급(A~F)을 표시"
+    )
     return parser.parse_args()
 
 def merge_participants(overall: dict, new_data: dict) -> dict:
@@ -216,7 +221,7 @@ def main():
             logging.info(f"\n텍스트 저장 완료: {txt_path}")
 
         if "chart" in formats:
-            aggregator.generate_chart(scores, save_path=args.output)
+            aggregator.generate_chart(scores, save_path=args.output, show_grade=args.grade)
             chart_path = os.path.join(args.output, "chart_participation.png")
             logging.info(f"\n차트 이미지 저장 완료: {chart_path}")
 
