@@ -19,6 +19,18 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+ERROR_MESSAGES = {
+    401: "❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.",
+    403: ("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.\n"
+            "🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.\n"
+            "💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요."),
+    404: "⚠️ 요청 실패 (404): 리포지토리가 존재하지 않습니다.",
+    500: "⚠️ 요청 실패 (500): GitHub 내부 서버 오류 발생!",
+    503: "⚠️ 요청 실패 (503): 서비스 불가",
+    422: ("⚠️ 요청 실패 (422): 처리할 수 없는 컨텐츠\n"
+            "⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
+}
+
 def check_github_repo_exists(repo: str) -> bool:
     return True  # 지금 여러 개의 저장소를 입력하는 경우 문제를 일으키기 때문에 무조건 True로 바꿔놓음
 
@@ -73,41 +85,45 @@ class RepoAnalyzer:
             url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
             response = retry_request(self.SESSION,
-                                     url,
-                                     max_retries=3,
-                                     params={
-                                         'state': 'all',
-                                         'per_page': per_page,
-                                         'page': page
-                                     })
-            if response.status_code == 401:
-                logging.error("❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.")
+                                    url,
+                                    max_retries=3,
+                                    params={
+                                        'state': 'all',
+                                        'per_page': per_page,
+                                        'page': page
+                                    })
+            status_code = response.status_code
+            if status_code == 401:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code == 403:
-                logging.warning("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.")
-                logging.info("🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.")
-                logging.info("💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요.")
+            elif status_code == 403:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code == 404:
-                logging.warning(f"⚠️ 요청 실패 (404): 리포지토리({self.repo_path})가 존재하지 않습니다.")
+            elif status_code == 404:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code == 500:
-                logging.error("⚠️ 요청 실패 (500): GitHub 내부 서버 오류 발생!")
+            elif status_code == 500:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code == 503:
-                logging.warning("⚠️ 요청 실패 (503): 서비스 불가")
+            elif status_code == 503:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code == 422:
-                logging.warning("⚠️ 요청 실패 (422): 처리할 수 없는 컨텐츠")
-                logging.warning("⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
+            elif status_code == 422:
+                message = ERROR_MESSAGES[status_code]
+                logging.error(message)
                 self._data_collected = False
                 return
-            elif response.status_code != 200:
+            elif status_code != 200:
                 logging.warning(f"⚠️ GitHub API 요청 실패: {response.status_code}")
                 self._data_collected = False
                 return
