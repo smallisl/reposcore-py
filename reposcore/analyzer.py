@@ -2,6 +2,7 @@
 
 from typing import Dict, Optional
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 import pandas as pd
 import requests
@@ -315,9 +316,9 @@ class RepoAnalyzer:
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str = "results", show_grade: bool = False) -> None:
-
-        plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
-
+        # 폰트 설정 변경
+        plt.rcParams['font.family'] = ['Arial', 'DejaVu Sans', 'sans-serif', 'NanumGothic']
+        
         sorted_scores = sorted(
             [(key, value.get('total', 0)) for (key, value) in scores.items()],
             key=lambda item: item[1],
@@ -370,7 +371,15 @@ class RepoAnalyzer:
         if save_path and not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
 
-        chart_path = os.path.join(save_path, "chart_participation.png")
+        chart_filename = "chart_participation_grade.png" if show_grade else "chart_participation.png"
+        chart_path = os.path.join(save_path, chart_filename)
+
+        # 기존 파일 삭제
+        if os.path.exists("results/chart_participation.png"):
+            os.remove("results/chart_participation.png")
+        if os.path.exists("results/chart_participation_grade.png"):
+            os.remove("results/chart_participation_grade.png")
+
         plt.tight_layout(pad=2)
         plt.savefig(chart_path)
         logging.info(f"📈 차트 저장 완료: {chart_path}")
