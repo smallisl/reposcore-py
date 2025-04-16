@@ -99,6 +99,11 @@ def parse_arguments() -> argparse.Namespace:
         help = "결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart). 옵션: 'table', 'text', 'chart', 'all'"
     )
     parser.add_argument(
+        "--grade",
+        action="store_true",
+        help="차트에 등급 표시"
+    )
+    parser.add_argument(
         "--use-cache",
         action="store_true",
         help="participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)"
@@ -117,11 +122,6 @@ def parse_arguments() -> argparse.Namespace:
         "--user-info",
         type=str,
         help="사용자 정보 파일의 경로"
-    )
-    parser.add_argument(
-        "--grade",
-        action="store_true",
-        help="차트에 등급(A~F)을 표시"
     )
     return parser.parse_args()
 
