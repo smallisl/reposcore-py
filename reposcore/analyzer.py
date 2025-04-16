@@ -123,6 +123,7 @@ class RepoAnalyzer:
                         'p_enhancement': 0,
                         'p_bug': 0,
                         'p_documentation': 0,
+                        'p_typo' : 0,
                         'i_enhancement': 0,
                         'i_bug': 0,
                         'i_documentation': 0,
