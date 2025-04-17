@@ -231,13 +231,13 @@ def main():
 
             # 1) CSV 테이블 저장
             if FORMAT_TABLE in formats:
-                table_path = os.path.join(repo_output_dir, "table.csv")
+                table_path = os.path.join(repo_output_dir, "score_participation.csv")
                 repo_aggregator.generate_table(repo_scores, save_path=table_path)
                 logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
 
             # 2) 텍스트 테이블 저장
             if FORMAT_TEXT in formats:
-                txt_path = os.path.join(repo_output_dir, "table.txt")
+                txt_path = os.path.join(repo_output_dir, "score_participation.txt")
                 repo_aggregator.generate_text(repo_scores, txt_path)
                 logging.info(f"[개별 저장소] 텍스트 파일 저장 완료: {txt_path}")
 
@@ -269,13 +269,13 @@ def main():
 
         # 통합 CSV
         if FORMAT_TABLE in formats:
-            table_path = os.path.join(args.output, "table.csv")
+            table_path = os.path.join(args.output, "score_participation.csv")
             aggregator.generate_table(scores, save_path=table_path)
             logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
         # 통합 텍스트
         if FORMAT_TEXT in formats:
-            txt_path = os.path.join(args.output, "table.txt")
+            txt_path = os.path.join(args.output, "score_participation.txt")
             aggregator.generate_text(scores, txt_path)
             logging.info(f"\n[통합] 텍스트 저장 완료: {txt_path}")
 

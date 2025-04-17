@@ -71,7 +71,7 @@ class RepoAnalyzer:
         self._data_collected = True  # 기본값을 True로 설정
 
         self.SESSION = requests.Session()
-        self.SESSION.headers.update({'Authorization': token}) if token else None
+        self.SESSION.headers.update({'Authorization': f'Bearer {token}'}) if token else None
 
     def collect_PRs_and_issues(self) -> None:
         """
@@ -280,7 +280,7 @@ class RepoAnalyzer:
 
         df.to_csv(save_path, index=False)
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
-        count_csv_path = os.path.join(dir_path or '.', "activity_count.csv")
+        count_csv_path = os.path.join(dir_path or '.', "count_participation.csv")
         with open(count_csv_path, 'w') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
             for name, score in scores.items():
@@ -334,7 +334,7 @@ class RepoAnalyzer:
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
-    def generate_chart(self, scores: Dict, save_path: str = "results", show_grade: bool = False) -> None:
+    def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
         # 폰트 설정 변경
         plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
         
@@ -399,18 +399,14 @@ class RepoAnalyzer:
                 fontsize=9
             )
 
-        if save_path and not os.path.exists(save_path):
-            os.makedirs(save_path, exist_ok=True)
+        # 디렉토리가 없으면 생성
+        save_dir = os.path.dirname(save_path)
+        if save_dir and not os.path.exists(save_dir):
+            os.makedirs(save_dir, exist_ok=True)
 
         chart_filename = "chart_participation_grade.png" if show_grade else "chart_participation.png"
         chart_path = os.path.join(save_path, chart_filename)
-
-        # 기존 파일 삭제
-        if os.path.exists("results/chart_participation.png"):
-            os.remove("results/chart_participation.png")
-        if os.path.exists("results/chart_participation_grade.png"):
-            os.remove("results/chart_participation_grade.png")
-
+        
         plt.tight_layout(pad=2)
         plt.savefig(chart_path)
         logging.info(f"📈 차트 저장 완료: {chart_path}")
