@@ -23,7 +23,7 @@ VALID_FORMATS_DISPLAY = ", ".join(VALID_FORMATS)
 logging.basicConfig(
     stream=sys.stdout,
     level=logging.INFO,
-    format='[%(asctime)s] %(message)s',
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
@@ -288,7 +288,6 @@ def main():
 
         # 통합 차트
         if FORMAT_CHART in formats:
-            # 수정된 코드
             chart_filename = "chart_participation_grade.png" if args.grade else "chart_participation.png"
             chart_path = os.path.join(args.output, chart_filename)
             aggregator.generate_chart(scores, save_path=chart_path, show_grade=args.grade)

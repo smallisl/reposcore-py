@@ -14,10 +14,11 @@ from .utils.theme_manager import ThemeManager
 import logging
 import sys
 import os
+import matplotlib.font_manager as fm
 
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s] %(message)s',
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
@@ -347,10 +348,14 @@ class RepoAnalyzer:
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
+        # 폰트 설정 변경 - 나눔고딕 폰트가 있는지 확인하고 있으면 사용
+        fonts = [f.name for f in fm.fontManager.ttflist]
+        if 'NanumGothic' in fonts:
+            plt.rcParams['font.family'] = ['NanumGothic']
+        else:
+            plt.rcParams['font.family'] = ['DejaVu Sans']  # fallback
         theme = self.theme_manager.themes[self.theme_manager.current_theme]  # 테마 가져오기
 
-        # 폰트 및 색상 설정
-        plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
         plt.rcParams['figure.facecolor'] = theme['chart']['style']['background']
         plt.rcParams['axes.facecolor'] = theme['chart']['style']['background']
         plt.rcParams['axes.edgecolor'] = theme['chart']['style']['text']
