@@ -13,6 +13,7 @@ from .utils.retry_request import retry_request
 import logging
 import sys
 import os
+import matplotlib.font_manager as fm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -335,8 +336,12 @@ class RepoAnalyzer:
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
-        # 폰트 설정 변경
-        plt.rcParams['font.family'] = ['NanumGothic', 'DejaVu Sans']
+        # 폰트 설정 변경 - 나눔고딕 폰트가 있는지 확인하고 있으면 사용
+        fonts = [f.name for f in fm.fontManager.ttflist]
+        if 'NanumGothic' in fonts:
+            plt.rcParams['font.family'] = ['NanumGothic']
+        else:
+            plt.rcParams['font.family'] = ['DejaVu Sans']  # fallback
         
         sorted_scores = sorted(
             [(key, value.get('total', 0)) for (key, value) in scores.items()],
