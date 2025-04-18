@@ -280,7 +280,7 @@ class RepoAnalyzer:
 
         df.to_csv(save_path, index=False)
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
-        count_csv_path = os.path.join(dir_path or '.', "count_participation.csv")
+        count_csv_path = os.path.join(dir_path or '.', "count.csv")
         with open(count_csv_path, 'w') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
             for name, score in scores.items():
@@ -364,7 +364,7 @@ class RepoAnalyzer:
 
         # 동적 색상 매핑
         norm = plt.Normalize(min(scores_sorted or [0]), max(scores_sorted or [1]))
-        colormap = cm.get_cmap('viridis')
+        colormap = plt.colormaps['viridis']
         for bar, score in zip(bars, scores_sorted):
             bar.set_color(colormap(norm(score)))
 
@@ -404,10 +404,7 @@ class RepoAnalyzer:
         if save_dir and not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
 
-        chart_filename = "chart_participation_grade.png" if show_grade else "chart_participation.png"
-        chart_path = os.path.join(save_path, chart_filename)
-        
         plt.tight_layout(pad=2)
-        plt.savefig(chart_path)
-        logging.info(f"📈 차트 저장 완료: {chart_path}")
+        plt.savefig(save_path)
+        logging.info(f"📈 차트 저장 완료: {save_path}")
         plt.close()

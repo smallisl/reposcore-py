@@ -231,20 +231,21 @@ def main():
 
             # 1) CSV 테이블 저장
             if FORMAT_TABLE in formats:
-                table_path = os.path.join(repo_output_dir, "score_participation.csv")
+                table_path = os.path.join(repo_output_dir, "score.csv")
                 repo_aggregator.generate_table(repo_scores, save_path=table_path)
                 logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
 
             # 2) 텍스트 테이블 저장
             if FORMAT_TEXT in formats:
-                txt_path = os.path.join(repo_output_dir, "score_participation.txt")
+                txt_path = os.path.join(repo_output_dir, "score.txt")
                 repo_aggregator.generate_text(repo_scores, txt_path)
                 logging.info(f"[개별 저장소] 텍스트 파일 저장 완료: {txt_path}")
 
             # 3) 차트 이미지 저장
             if FORMAT_CHART in formats:
-                chart_path = os.path.join(repo_output_dir, "chart_participation.png")
-                repo_aggregator.generate_chart(repo_scores, save_path=chart_path)
+                chart_filename = "chart_participation_grade.png" if args.grade else "chart_participation.png"
+                chart_path = os.path.join(repo_output_dir, chart_filename)
+                repo_aggregator.generate_chart(repo_scores, save_path=chart_path, show_grade=args.grade)
                 logging.info(f"[개별 저장소] 차트 이미지 저장 완료: {chart_path}")
 
         except Exception as e:
@@ -269,13 +270,13 @@ def main():
 
         # 통합 CSV
         if FORMAT_TABLE in formats:
-            table_path = os.path.join(args.output, "score_participation.csv")
+            table_path = os.path.join(args.output, "score.csv")
             aggregator.generate_table(scores, save_path=table_path)
             logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
         # 통합 텍스트
         if FORMAT_TEXT in formats:
-            txt_path = os.path.join(args.output, "score_participation.txt")
+            txt_path = os.path.join(args.output, "score.txt")
             aggregator.generate_text(scores, txt_path)
             logging.info(f"\n[통합] 텍스트 저장 완료: {txt_path}")
 
