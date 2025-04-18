@@ -109,7 +109,7 @@ class RepoAnalyzer:
            
              # 🔽 에러 처리 부분 25줄 → 3줄로 리팩토링
             if self._handle_api_error(response.status_code):
-            return
+                return
 
             items = response.json()
             if not items:
