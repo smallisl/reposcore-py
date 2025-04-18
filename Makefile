@@ -25,6 +25,11 @@ requirements: venv
 test: requirements
 	$(PYTEST) tests
 
+update-fonts: requirements
+	@echo "Updating fonts cache..."
+	sudo fc-cache -fv
+	$(PYTHON) -c "import shutil; import matplotlib; shutil.rmtree(matplotlib.get_cachedir())"
+
 install-fonts:
 	@echo "Detected distribution: $(DISTRO)"
 
