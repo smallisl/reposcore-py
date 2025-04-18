@@ -282,8 +282,9 @@ def main():
 
         # 통합 차트
         if FORMAT_CHART in formats:
-            aggregator.generate_chart(scores, save_path=args.output, show_grade=args.grade)
-            chart_path = os.path.join(args.output, "chart_participation.png")
+            chart_filename = "chart_participation_grade.png" if args.grade else "chart_participation.png"
+            chart_path = os.path.join(args.output, chart_filename)
+            aggregator.generate_chart(scores, save_path=chart_path, show_grade=args.grade)
             logging.info(f"\n[통합] 차트 이미지 저장 완료: {chart_path}")
 
     except Exception as e:
