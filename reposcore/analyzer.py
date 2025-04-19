@@ -424,8 +424,8 @@ class RepoAnalyzer:
             # 점수, 등급, 순위 표시
             score_text = f'{int(score)}{grade} ({ranks[i]}위)'
             
-            # 활동 비율 표시
-            ratio_text = f'FEAT/BUG: {feat_bug_ratio:.1f}% DOC: {doc_ratio:.1f}% TYPO: {typo_ratio:.1f}%'
+            # 활동 비율 표시 (앞글자만 사용)
+            ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
             
             plt.text(
                 bar.get_width() + 0.5,
