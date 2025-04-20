@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from typing import Dict, Optional
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
@@ -8,13 +9,13 @@ import pandas as pd
 import requests
 from prettytable import PrettyTable
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from .utils.retry_request import retry_request
 from .utils.theme_manager import ThemeManager 
 
 import logging
 import sys
 import os
-import matplotlib.font_manager as fm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -54,22 +55,46 @@ def check_github_repo_exists(repo: str) -> bool:
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
+    # 점수 가중치
+    SCORE_WEIGHTS = {
+        'feat_bug_pr': 3,
+        'doc_pr': 2,
+        'typo_pr': 1,
+        'feat_bug_is': 2,
+        'doc_is': 1
+    }
+    
+    # 차트 설정
+    CHART_CONFIG = {
+        'height_per_participant': 0.4,  # 참여자당 차트 높이
+        'min_height': 3.0,             # 최소 차트 높이
+        'bar_height': 0.5,             # 막대 높이
+        'figure_width': 10,            # 차트 너비
+        'label_offset': 0.5,           # 레이블 오프셋
+        'font_size': 9                 # 폰트 크기
+    }
+    
+    # 등급 기준
+    GRADE_THRESHOLDS = {
+        90: 'A',
+        80: 'B',
+        70: 'C',
+        60: 'D',
+        50: 'E',
+        0: 'F'
+    }
 
-    def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
-        print("🧪 RepoAnalyzer 실행됨! theme 파라미터 =", theme)
+    # 사용자 제외 목록
+    EXCLUDED_USERS = {"kyahnu", "kyagrd"}
+
+   def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
         if not check_github_repo_exists(repo_path):
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
 
         self.repo_path = repo_path
         self.participants: Dict = {}
-        self.score = {
-            'feat_bug_pr': 3,
-            'doc_pr': 2,
-            'typo_pr': 1,
-            'feat_bug_is': 2,
-            'doc_is': 1
-        }
+        self.score = self.SCORE_WEIGHTS.copy()
 
         self.theme_manager = ThemeManager()  # 테마 매니저 초기화
         self.set_theme(theme)                # 테마 설정
@@ -85,7 +110,18 @@ class RepoAnalyzer:
             self.theme_manager.current_theme = theme_name
         else:
             raise ValueError(f"지원하지 않는 테마입니다: {theme_name}")
-        
+
+    def _handle_api_error(self, status_code: int) -> bool:
+        if status_code in ERROR_MESSAGES:
+            logging.error(ERROR_MESSAGES[status_code])
+            self._data_collected = False
+            return True
+        elif status_code != 200:
+            logging.warning(f"⚠️ GitHub API 요청 실패: {status_code}")
+            self._data_collected = False
+            return True
+        return False
+
     def collect_PRs_and_issues(self) -> None:
         """
         하나의 API 호출로 GitHub 이슈 목록을 가져오고,
@@ -107,40 +143,9 @@ class RepoAnalyzer:
                                         'per_page': per_page,
                                         'page': page
                                     })
-            status_code = response.status_code
-            if status_code == 401:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code == 403:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code == 404:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code == 500:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code == 503:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code == 422:
-                message = ERROR_MESSAGES[status_code]
-                logging.error(message)
-                self._data_collected = False
-                return
-            elif status_code != 200:
-                logging.warning(f"⚠️ GitHub API 요청 실패: {response.status_code}")
-                self._data_collected = False
+           
+             # 🔽 에러 처리 부분 25줄 → 3줄로 리팩토링
+            if self._handle_api_error(response.status_code):
                 return
 
             items = response.json()
@@ -193,10 +198,9 @@ class RepoAnalyzer:
             logging.warning("⚠️ 수집된 데이터가 없습니다. (참여자 없음)")
             logging.info("📄 참여자는 없지만, 결과 파일은 생성됩니다.")
         else:
-            excluded_ids = {"kyahnu", "kyagrd"}
             self.participants = {
                 user: info for user, info in self.participants.items()
-                if user not in excluded_ids
+                if user not in self.EXCLUDED_USERS
             }
             logging.info("\n참여자별 활동 내역 (participants 딕셔너리):")
             for user, info in self.participants.items():
@@ -293,6 +297,7 @@ class RepoAnalyzer:
 
         df.to_csv(save_path, index=False)
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
+        
         count_csv_path = os.path.join(dir_path or '.', "count.csv")
         with open(count_csv_path, 'w') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
@@ -348,12 +353,15 @@ class RepoAnalyzer:
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
     def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
-        # 폰트 설정 변경 - 나눔고딕 폰트가 있는지 확인하고 있으면 사용
-        fonts = [f.name for f in fm.fontManager.ttflist]
-        if 'NanumGothic' in fonts:
-            plt.rcParams['font.family'] = ['NanumGothic']
-        else:
-            plt.rcParams['font.family'] = ['DejaVu Sans']  # fallback
+
+      # Linux 환경에서 CJK 폰트 수동 설정
+        # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
+        for pref_name in ['Noto Sans CJK', 'NanumGothic', 'Baekmuk Dotum']:
+            found_ttf = next((ttf for ttf in fm.fontManager.ttflist if pref_name in ttf.name), None)
+
+            if found_ttf:
+                plt.rcParams['font.family'] = found_ttf.name
+                break
         theme = self.theme_manager.themes[self.theme_manager.current_theme]  # 테마 가져오기
 
         plt.rcParams['figure.facecolor'] = theme['chart']['style']['background']
@@ -373,7 +381,12 @@ class RepoAnalyzer:
         )
         participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
         num_participants = len(participants)
-        height = max(3., num_participants * 0.4)
+        
+        # 클래스 상수 사용
+        height = max(
+            self.CHART_CONFIG['min_height'],
+            num_participants * self.CHART_CONFIG['height_per_participant']
+        )
 
         # 등수 계산 (동점 처리)
         ranks = []
@@ -387,8 +400,8 @@ class RepoAnalyzer:
                 ranks.append(ranks[-1])
             current_rank += 1
 
-        plt.figure(figsize=(10, height))
-        bars = plt.barh(participants, scores_sorted, height=0.5)
+        plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
+        bars = plt.barh(participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
 
         # 색상 매핑 (기본 colormap 또는 등급별 색상)
         if show_grade:
@@ -415,33 +428,28 @@ class RepoAnalyzer:
                 bar.set_color(colormap(norm(score)))
 
         plt.xlabel('Participation Score')
-        plt.title('Repository Participation Scores')
+        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("Generated at %Y-%m-%d %H:%M:%S")
+        plt.title(f'Repository Participation Scores\n{timestamp}')
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
         for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
             grade = ''
             if show_grade:
-                if score >= 90:
-                    grade = 'A'
-                elif score >= 80:
-                    grade = 'B'
-                elif score >= 70:
-                    grade = 'C'
-                elif score >= 60:
-                    grade = 'D'
-                elif score >= 50:
-                    grade = 'E'
-                else:
-                    grade = 'F'
-                grade = f" ({grade})"
+                # 상수 사용
+                grade_assigned = 'F'
+                for threshold, grade_letter in sorted(self.GRADE_THRESHOLDS.items(), reverse=True):
+                    if score >= threshold:
+                        grade_assigned = grade_letter
+                        break
+                grade = f" ({grade_assigned})"
 
             plt.text(
-                bar.get_width() + 0.5,
+                bar.get_width() + self.CHART_CONFIG['label_offset'],
                 bar.get_y() + bar.get_height() / 2,
                 f'{int(score)}{grade} ({ranks[i]}place)',
                 va='center',
-                fontsize=9
+                fontsize=self.CHART_CONFIG['font_size']
             )
 
         # 디렉토리가 없으면 생성
@@ -449,7 +457,7 @@ class RepoAnalyzer:
         if save_dir and not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
 
-        plt.tight_layout(pad=2)
+        plt.subplots_adjust(left=0.25, right=0.98, top=0.93, bottom=0.05)
         plt.savefig(save_path)
         logging.info(f"📈 차트 저장 완료: {save_path}")
         plt.close()
