@@ -183,6 +183,22 @@ def main():
         check_rate_limit(token=github_token)
         sys.exit(0)
 
+   # --user-info 옵션으로 지정된 파일이 존재하는지, JSON 파싱이 가능한지 검증
+    if args.user_info:
+        # 1) 파일 존재 여부 확인
+        if not os.path.isfile(args.user_info):
+            logging.error("❌ 사용자 정보 파일을 찾을 수 없습니다.")
+            sys.exit(1)
+        # 2) JSON 문법 오류 확인
+        try:
+            with open(args.user_info, "r", encoding="utf-8") as f:
+                user_info = json.load(f)
+        except json.JSONDecodeError:
+            logging.error("❌ 사용자 정보 파일이 올바른 JSON 형식이 아닙니다.")
+            sys.exit(1)
+    else:
+        user_info = None
+
     repositories: List[str] = args.repository
     # 쉼표로 여러 저장소가 입력된 경우 분리
     final_repositories = list(dict.fromkeys(
@@ -206,6 +222,8 @@ def main():
         logging.info(f"분석 시작: {repo}")
 
         analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+        repo_aggregator = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+
         # 저장소별 캐시 파일 생성 (예: cache_oss2025hnu_reposcore-py.json)
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
         cache_path = os.path.join(args.output, cache_file_name)
@@ -227,11 +245,11 @@ def main():
                 json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
 
         try:
+            # 1) 사용자 정보 로드 (없으면 None)
             user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
                 if args.user_info and os.path.exists(args.user_info) else None
-
-            # 저장소별 aggregator 인스턴스 생성
-            repo_aggregator = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+ 
+            # 2) 미리 생성해 둔 repo_aggregator에 참가자 데이터 할당
             repo_aggregator.participants = analyzer.participants
 
             # 스코어 계산
@@ -278,6 +296,9 @@ def main():
     try:
         user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
             if args.user_info and os.path.exists(args.user_info) else None
+        # …이제 여기에 바로 user_info 변수 사용…
+        repo_scores = repo_aggregator.calculate_scores(user_info)
+
 
         scores = aggregator.calculate_scores(user_info)
         formats = set(args.format)
