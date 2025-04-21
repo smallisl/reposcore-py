@@ -87,7 +87,7 @@ class RepoAnalyzer:
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
-   def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
+    def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
         if not check_github_repo_exists(repo_path):
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
