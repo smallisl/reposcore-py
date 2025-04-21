@@ -87,7 +87,7 @@ class RepoAnalyzer:
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
-   def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
+    def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
         if not check_github_repo_exists(repo_path):
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
@@ -206,60 +206,99 @@ class RepoAnalyzer:
             for user, info in self.participants.items():
                 logging.info(f"{user}: {info}")
 
-    def calculate_scores(self, user_info=None) -> Dict:
-        """Calculate participation scores for each contributor using the refactored formula"""
-        scores = {}
-        total_score_sum = 0
+    def _extract_pr_counts(self, activities: Dict) -> tuple[int, int, int, int, int]:
+        """PR 관련 카운트 추출"""
+        p_f = activities.get('p_enhancement', 0)
+        p_b = activities.get('p_bug', 0)
+        p_d = activities.get('p_documentation', 0)
+        p_t = activities.get('p_typo', 0)
+        p_fb = p_f + p_b
+        return p_f, p_b, p_d, p_t, p_fb
 
-        for participant, activities in self.participants.items():
-            p_f = activities.get('p_enhancement', 0)
-            p_b = activities.get('p_bug', 0)
-            p_d = activities.get('p_documentation', 0)
-            p_t = activities.get('p_typo', 0)
-            p_fb = p_f + p_b
+    def _extract_issue_counts(self, activities: Dict) -> tuple[int, int, int, int]:
+        """이슈 관련 카운트 추출"""
+        i_f = activities.get('i_enhancement', 0)
+        i_b = activities.get('i_bug', 0)
+        i_d = activities.get('i_documentation', 0)
+        i_fb = i_f + i_b
+        return i_f, i_b, i_d, i_fb
 
-            i_f = activities.get('i_enhancement', 0)
-            i_b = activities.get('i_bug', 0)
-            i_d = activities.get('i_documentation', 0)
-            i_fb = i_f + i_b
+    def _calculate_valid_counts(self, p_fb: int, p_d: int, i_fb: int, i_d: int) -> tuple[int, int]:
+        """유효 카운트 계산"""
+        p_valid = p_fb + min(p_d, 3 * max(p_fb, 1))
+        i_valid = min(i_fb + i_d, 4 * p_valid)
+        return p_valid, i_valid
 
-            p_valid = p_fb + min(p_d, 3 * max(p_fb, 1))
-            i_valid = min(i_fb + i_d, 4 * p_valid)
+    def _calculate_adjusted_counts(self, p_fb: int, p_valid: int, i_fb: int, i_valid: int) -> tuple[int, int, int, int]:
+        """조정된 카운트 계산"""
+        p_fb_at = min(p_fb, p_valid)
+        p_d_at = p_valid - p_fb_at
+        i_fb_at = min(i_fb, i_valid)
+        i_d_at = i_valid - i_fb_at
+        return p_fb_at, p_d_at, i_fb_at, i_d_at
 
-            p_fb_at = min(p_fb, p_valid)
-            p_d_at = p_valid - p_fb_at
+    def _calculate_total_score(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int) -> int:
+        """총점 계산"""
+        return (
+            self.score['feat_bug_pr'] * p_fb_at +
+            self.score['doc_pr'] * p_d_at +
+            self.score['typo_pr'] * p_t +
+            self.score['feat_bug_is'] * i_fb_at +
+            self.score['doc_is'] * i_d_at
+        )
 
-            i_fb_at = min(i_fb, i_valid)
-            i_d_at = i_valid - i_fb_at
+    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict:
+        """점수 딕셔너리 생성"""
+        return {
+            "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
+            "document PR": self.score['doc_pr'] * p_d_at,
+            "typo PR": self.score['typo_pr'] * p_t,
+            "feat/bug issue": self.score['feat_bug_is'] * i_fb_at,
+            "document issue": self.score['doc_is'] * i_d_at,
+            "total": total
+        }
 
-            S = (
-                    self.score['feat_bug_pr'] * p_fb_at +
-                    self.score['doc_pr'] * p_d_at +
-                    self.score['typo_pr'] * p_t +
-                    self.score['feat_bug_is'] * i_fb_at +
-                    self.score['doc_is'] * i_d_at
-            )
-
-            scores[participant] = {
-                "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
-                "document PR": self.score['doc_pr'] * p_d_at,
-                "typo PR": self.score['typo_pr'] * p_t,
-                "feat/bug issue": self.score['feat_bug_is'] * i_fb_at,
-                "document issue": self.score['doc_is'] * i_d_at,
-                "total": S
-            }
-
-            total_score_sum += S
-
+    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict:
+        """최종 점수 계산 및 정렬"""
+        # 비율 계산
         for participant in scores:
             total = scores[participant]["total"]
             rate = (total / total_score_sum) * 100 if total_score_sum > 0 else 0
             scores[participant]["rate"] = round(rate, 1)
 
+        # 사용자 정보 매핑 (제공된 경우)
         if user_info:
             scores = {user_info[k]: scores.pop(k) for k in list(scores.keys()) if user_info.get(k) and scores.get(k)}
 
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
+
+    def calculate_scores(self, user_info=None) -> Dict:
+        """참여자별 점수 계산"""
+        scores = {}
+        total_score_sum = 0
+
+        for participant, activities in self.participants.items():
+            # PR 카운트 추출
+            p_f, p_b, p_d, p_t, p_fb = self._extract_pr_counts(activities)
+            
+            # 이슈 카운트 추출
+            i_f, i_b, i_d, i_fb = self._extract_issue_counts(activities)
+            
+            # 유효 카운트 계산
+            p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, i_fb, i_d)
+            
+            # 조정된 카운트 계산
+            p_fb_at, p_d_at, i_fb_at, i_d_at = self._calculate_adjusted_counts(
+                p_fb, p_valid, i_fb, i_valid
+            )
+            
+            # 총점 계산
+            total = self._calculate_total_score(p_fb_at, p_d_at, p_t, i_fb_at, i_d_at)
+            
+            scores[participant] = self._create_score_dict(p_fb_at, p_d_at, p_t, i_fb_at, i_d_at, total)
+            total_score_sum += total
+
+        return self._finalize_scores(scores, total_score_sum, user_info)
 
     def calculate_averages(self, scores):
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
