@@ -11,6 +11,7 @@ from prettytable import PrettyTable
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from .utils.retry_request import retry_request
+from .utils.theme_manager import ThemeManager 
 
 import logging
 import sys
@@ -54,7 +55,6 @@ def check_github_repo_exists(repo: str) -> bool:
 
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
-
     # 점수 가중치
     SCORE_WEIGHTS = {
         'feat_bug_pr': 3,
@@ -87,7 +87,7 @@ class RepoAnalyzer:
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
-    def __init__(self, repo_path: str, token: Optional[str] = None):
+   def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
         if not check_github_repo_exists(repo_path):
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
@@ -96,10 +96,20 @@ class RepoAnalyzer:
         self.participants: Dict = {}
         self.score = self.SCORE_WEIGHTS.copy()
 
-        self._data_collected = True  # 기본값을 True로 설정
+        self.theme_manager = ThemeManager()  # 테마 매니저 초기화
+        self.set_theme(theme)                # 테마 설정
+
+        self._data_collected = True
 
         self.SESSION = requests.Session()
-        self.SESSION.headers.update({'Authorization': f'Bearer {token}'}) if token else None
+        if token:
+            self.SESSION.headers.update({'Authorization': f'Bearer {token}'})
+
+    def set_theme(self, theme_name: str) -> None:
+        if theme_name in self.theme_manager.themes:
+            self.theme_manager.current_theme = theme_name
+        else:
+            raise ValueError(f"지원하지 않는 테마입니다: {theme_name}")
 
     def _handle_api_error(self, status_code: int) -> bool:
         if status_code in ERROR_MESSAGES:
@@ -365,7 +375,8 @@ class RepoAnalyzer:
         return feat_bug_ratio, doc_ratio, typo_ratio
 
     def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
-        # Linux 환경에서 CJK 폰트 수동 설정
+
+      # Linux 환경에서 CJK 폰트 수동 설정
         # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
         for pref_name in ['Noto Sans CJK', 'NanumGothic', 'Baekmuk Dotum']:
             found_ttf = next((ttf for ttf in fm.fontManager.ttflist if pref_name in ttf.name), None)
@@ -373,7 +384,18 @@ class RepoAnalyzer:
             if found_ttf:
                 plt.rcParams['font.family'] = found_ttf.name
                 break
-        
+        theme = self.theme_manager.themes[self.theme_manager.current_theme]  # 테마 가져오기
+
+        plt.rcParams['figure.facecolor'] = theme['chart']['style']['background']
+        plt.rcParams['axes.facecolor'] = theme['chart']['style']['background']
+        plt.rcParams['axes.edgecolor'] = theme['chart']['style']['text']
+        plt.rcParams['axes.labelcolor'] = theme['chart']['style']['text']
+        plt.rcParams['xtick.color'] = theme['chart']['style']['text']
+        plt.rcParams['ytick.color'] = theme['chart']['style']['text']
+        plt.rcParams['grid.color'] = theme['chart']['style']['grid']
+        plt.rcParams['text.color'] = theme['chart']['style']['text']
+
+        # 점수 정렬
         sorted_scores = sorted(
             [(key, value.get('total', 0)) for (key, value) in scores.items()],
             key=lambda item: item[1],
@@ -403,11 +425,29 @@ class RepoAnalyzer:
         plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
         bars = plt.barh(participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
 
-        # 동적 색상 매핑
-        norm = plt.Normalize(min(scores_sorted or [0]), max(scores_sorted or [1]))
-        colormap = plt.colormaps['viridis']
-        for bar, score in zip(bars, scores_sorted):
-            bar.set_color(colormap(norm(score)))
+        # 색상 매핑 (기본 colormap 또는 등급별 색상)
+        if show_grade:
+            def get_grade_color(score):
+                if score >= 90:
+                    return theme['colors']['grade_colors']['A']
+                elif score >= 80:
+                    return theme['colors']['grade_colors']['B']
+                elif score >= 70:
+                    return theme['colors']['grade_colors']['C']
+                elif score >= 60:
+                    return theme['colors']['grade_colors']['D']
+                elif score >= 50:
+                    return theme['colors']['grade_colors']['E']
+                else:
+                    return theme['colors']['grade_colors']['F']
+
+            for bar, score in zip(bars, scores_sorted):
+                bar.set_color(get_grade_color(score))
+        else:
+            colormap = plt.colormaps[theme['chart']['style']['colormap']]
+            norm = plt.Normalize(min(scores_sorted or [0]), max(scores_sorted or [1]))
+            for bar, score in zip(bars, scores_sorted):
+                bar.set_color(colormap(norm(score)))
 
         plt.xlabel('Participation Score')
         timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("Generated at %Y-%m-%d %H:%M:%S")
