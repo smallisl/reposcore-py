@@ -352,6 +352,28 @@ class RepoAnalyzer:
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
+    def _calculate_activity_ratios(self, participant_scores: Dict) -> tuple[float, float, float]:
+        """참여자의 FEAT/BUG/DOC 활동 비율을 계산"""
+        total = participant_scores["total"]
+        if total == 0:
+            return 0, 0, 0
+            
+        feat_bug_score = (
+            participant_scores["feat/bug PR"] + 
+            participant_scores["feat/bug issue"]
+        )
+        doc_score = (
+            participant_scores["document PR"] + 
+            participant_scores["document issue"]
+        )
+        typo_score = participant_scores["typo PR"]
+        
+        feat_bug_ratio = (feat_bug_score / total) * 100
+        doc_ratio = (doc_score / total) * 100
+        typo_ratio = (typo_score / total) * 100
+        
+        return feat_bug_ratio, doc_ratio, typo_ratio
+
     def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
 
       # Linux 환경에서 CJK 폰트 수동 설정
@@ -433,7 +455,11 @@ class RepoAnalyzer:
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
+        # 점수와 활동 비율 표시
         for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
+            participant = participants[i]
+            feat_bug_ratio, doc_ratio, typo_ratio = self._calculate_activity_ratios(scores[participant])
+            
             grade = ''
             if show_grade:
                 # 상수 사용
@@ -444,10 +470,16 @@ class RepoAnalyzer:
                         break
                 grade = f" ({grade_assigned})"
 
+            # 점수, 등급, 순위 표시
+            score_text = f'{int(score)}{grade} ({ranks[i]}위)'
+            
+            # 활동 비율 표시 (앞글자만 사용)
+            ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
+            
             plt.text(
                 bar.get_width() + self.CHART_CONFIG['label_offset'],
                 bar.get_y() + bar.get_height() / 2,
-                f'{int(score)}{grade} ({ranks[i]}place)',
+                f'{score_text}\n{ratio_text}',
                 va='center',
                 fontsize=self.CHART_CONFIG['font_size']
             )
