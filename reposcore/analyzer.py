@@ -35,6 +35,18 @@ ERROR_MESSAGES = {
             "⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
 }
 
+def get_emoji(score):
+    if score >= 90: return "🌟"     # 최상위 성과
+    elif score >= 80: return "⭐"    # 탁월한 성과
+    elif score >= 70: return "🎯"    # 목표 달성
+    elif score >= 60: return "🎨"    # 양호한 성과
+    elif score >= 50: return "🌱"    # 성장 중
+    elif score >= 40: return "🍀"    # 발전 가능성
+    elif score >= 30: return "🌿"    # 초기 단계
+    elif score >= 20: return "🍂"    # 개선 필요
+    elif score >= 10: return "🍁"    # 참여 시작
+    else: return "🌑"                # 최소 참여
+
 def check_github_repo_exists(repo: str) -> bool:
     return True  # 지금 여러 개의 저장소를 입력하는 경우 문제를 일으키기 때문에 무조건 True로 바꿔놓음
 
@@ -87,7 +99,7 @@ class RepoAnalyzer:
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
-   def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
+    def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
         if not check_github_repo_exists(repo_path):
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
@@ -121,6 +133,13 @@ class RepoAnalyzer:
             self._data_collected = False
             return True
         return False
+
+    def _get_grade(self, score: float) -> str:
+        """Calculate grade based on score using GRADE_THRESHOLDS"""
+        for threshold, grade in sorted(self.GRADE_THRESHOLDS.items(), reverse=True):
+            if score >= threshold:
+                return grade
+        return 'F'
 
     def collect_PRs_and_issues(self) -> None:
         """
@@ -264,7 +283,7 @@ class RepoAnalyzer:
     def calculate_averages(self, scores):
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
-            return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
+            return {"feat/bug PR": 0, "document PR": 0, "typo PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
 
         num_participants = len(scores)
         totals = {
@@ -311,6 +330,7 @@ class RepoAnalyzer:
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
 
     def generate_text(self, scores: Dict, save_path) -> None:
+        # 기존 table.txt 생성
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
 
@@ -346,11 +366,47 @@ class RepoAnalyzer:
             os.makedirs(dir_path)
 
         # 생성 날짜 및 시간 추가 (텍스트 파일 상단)
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+        current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
         with open(save_path, 'w') as txt_file:
             txt_file.write(f"Generated on: {current_time}\n\n")
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
+
+        # 새로운 score.txt 생성
+        score_table = PrettyTable()
+        score_table.field_names = ["name", "feat/bug PR", "document PR", "typo PR", "feat/bug issue", "document issue", "total", "grade", "rate"]
+
+        # 평균 행 추가 (grade 컬럼 비움)
+        score_table.add_row([
+            "avg",
+            round(averages["feat/bug PR"], 1),
+            round(averages["document PR"], 1),
+            round(averages["typo PR"], 1),
+            round(averages["feat/bug issue"], 1),
+            round(averages["document issue"], 1),
+            round(averages["total"], 1),
+            "",
+            f'{averages["rate"]:.1f}%'
+        ])
+
+        for name, score in scores.items():
+            score_table.add_row([
+                f"{get_emoji(score['total'])} {name}",
+                score["feat/bug PR"],
+                score["document PR"],
+                score["typo PR"],
+                score['feat/bug issue'],
+                score['document issue'],
+                score['total'],
+                self._get_grade(score['total']),
+                f'{score["rate"]:.1f}%'
+            ])
+
+        score_path = os.path.join(dir_path or '.', "score.txt")
+        with open(score_path, 'w') as score_file:
+            score_file.write(f"Generated on: {current_time}\n\n")
+            score_file.write(str(score_table))
+        logging.info(f"📝 점수 텍스트 결과 저장 완료: {score_path}")
 
     def _calculate_activity_ratios(self, participant_scores: Dict) -> tuple[float, float, float]:
         """참여자의 FEAT/BUG/DOC 활동 비율을 계산"""
