@@ -9,6 +9,7 @@ from typing import Optional, List
 from datetime import datetime
 import json
 import logging
+from .utils.github_utils import check_github_repo_exists
 
 # 포맷 상수
 FORMAT_TABLE = "table"
@@ -45,16 +46,6 @@ def validate_repo_format(repo: str) -> bool:
     """Check if the repo input follows 'owner/repo' format"""
     parts = repo.split("/")
     return len(parts) == 2 and all(parts)
-
-def check_github_repo_exists(repo: str) -> bool:
-    """Check if the given GitHub repository exists"""
-    url = f"https://api.github.com/repos/{repo}"
-    response = requests.get(url)
-    if response.status_code == 403:
-        logging.warning("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
-        logging.info("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
-        return False
-    return response.status_code == 200
 
 def check_rate_limit(token: Optional[str] = None) -> None:
     """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인하고 출력하는 함수"""
@@ -210,8 +201,9 @@ def main():
         if not validate_repo_format(repo):
             logging.error(f"오류: 저장소 '{repo}'는 'owner/repo' 형식으로 입력해야 합니다. 예) 'oss2025hnu/reposcore-py'")
             sys.exit(1)
-        if not check_github_repo_exists(repo):
+        if not check_github_repo_exists(repo, bypass=False):
             logging.warning(f"입력한 저장소 '{repo}'가 깃허브에 존재하지 않을 수 있음.")
+            sys.exit(1)
 
     logging.info(f"저장소 분석 시작: {', '.join(final_repositories)}")
 
