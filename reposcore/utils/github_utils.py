@@ -1,5 +1,14 @@
+import re
 import requests
 import logging
+
+def validate_repo_format(repo: str) -> bool:
+    pattern = r'^[\w\-]+/[\w\-]+$'
+    if re.fullmatch(pattern, repo):
+        return True
+    else:
+        print("저장소 형식이 올바르지 않습니다. 'owner/repo' 형식으로 입력해주세요.")
+        return False
 
 def check_github_repo_exists(repo: str, bypass: bool = False) -> bool:
     """
