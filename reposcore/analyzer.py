@@ -445,8 +445,25 @@ class RepoAnalyzer:
                 ranks.append(ranks[-1])
             current_rank += 1
 
+        # 등수를 영어 서수로 변환하는 함수
+        def get_ordinal_suffix(rank):
+            if rank == 1:
+                return "1st"
+            elif rank == 2:
+                return "2nd"
+            elif rank == 3:
+                return "3rd"
+            else:
+                return f"{rank}th"
+
+        # 사용자 이름에 등수 추가
+        ranked_participants = []
+        for i, participant in enumerate(participants):
+            rank_suffix = get_ordinal_suffix(ranks[i])
+            ranked_participants.append(f"{rank_suffix} {participant}")
+
         plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
-        bars = plt.barh(participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
+        bars = plt.barh(ranked_participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
 
         # 색상 매핑 (기본 colormap 또는 등급별 색상)
         if show_grade:
@@ -493,8 +510,8 @@ class RepoAnalyzer:
                         break
                 grade = f" ({grade_assigned})"
 
-            # 점수, 등급, 순위 표시
-            score_text = f'{int(score)}{grade} ({ranks[i]}위)'
+            # 점수와 등급만 표시 (순위는 이름 앞에 표시되므로 제거)
+            score_text = f'{int(score)}{grade}'
             
             # 활동 비율 표시 (앞글자만 사용)
             ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
