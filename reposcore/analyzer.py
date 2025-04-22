@@ -49,24 +49,6 @@ def get_emoji(score):
     elif score >= 10: return "🍁"    # 참여 시작
     else: return "🌑"                # 최소 참여
 
-def check_github_repo_exists(repo: str) -> bool:
-    return True  # 지금 여러 개의 저장소를 입력하는 경우 문제를 일으키기 때문에 무조건 True로 바꿔놓음
-
-
-#    """주어진 GitHub 저장소가 존재하는지 확인하는 함수"""
-#    url = f"https://api.github.com/repos/{repo}"
-#    response = requests.get(url)
-#    
-#    if response.status_code == 403:
-#        logging.warning("⚠️ GitHub API 요청 실패: 403 (비인증 상태로 요청 횟수 초과일 수 있습니다.)")
-#        logging.info("ℹ️ 해결 방법: --token 옵션으로 GitHub Access Token을 전달해보세요.")
-#    elif response.status_code == 404:
-#        logging.warning(f"⚠️ 저장소 '{repo}'가 존재하지 않습니다.")
-#    elif response.status_code != 200:
-#        logging.warning(f"⚠️ 요청 실패: {response.status_code}")
-#
-#    return response.status_code == 200
-
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
     # 점수 가중치
