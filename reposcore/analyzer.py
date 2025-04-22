@@ -134,13 +134,6 @@ class RepoAnalyzer:
             return True
         return False
 
-    def _get_grade(self, score: float) -> str:
-        """Calculate grade based on score using GRADE_THRESHOLDS"""
-        for threshold, grade in sorted(self.GRADE_THRESHOLDS.items(), reverse=True):
-            if score >= threshold:
-                return grade
-        return 'F'
-
     def collect_PRs_and_issues(self) -> None:
         """
         하나의 API 호출로 GitHub 이슈 목록을 가져오고,
@@ -372,11 +365,11 @@ class RepoAnalyzer:
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
 
-        # 새로운 score.txt 생성
+        # score.txt 생성 (이모지 포함, grade 컬럼 제외)
         score_table = PrettyTable()
-        score_table.field_names = ["name", "feat/bug PR", "document PR", "typo PR", "feat/bug issue", "document issue", "total", "grade", "rate"]
+        score_table.field_names = ["name", "feat/bug PR", "document PR", "typo PR", "feat/bug issue", "document issue", "total", "rate"]
 
-        # 평균 행 추가 (grade 컬럼 비움)
+        # 평균 행 추가
         score_table.add_row([
             "avg",
             round(averages["feat/bug PR"], 1),
@@ -385,7 +378,6 @@ class RepoAnalyzer:
             round(averages["feat/bug issue"], 1),
             round(averages["document issue"], 1),
             round(averages["total"], 1),
-            "",
             f'{averages["rate"]:.1f}%'
         ])
 
@@ -398,7 +390,6 @@ class RepoAnalyzer:
                 score['feat/bug issue'],
                 score['document issue'],
                 score['total'],
-                self._get_grade(score['total']),
                 f'{score["rate"]:.1f}%'
             ])
 
