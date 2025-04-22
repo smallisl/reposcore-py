@@ -83,9 +83,19 @@ class RepoAnalyzer:
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
     def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
-        if not check_github_repo_exists(repo_path): #테스트 중이므로 무조건 True 반환
-            logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
-            sys.exit(1)
+        # 테스트용 저장소나 통합 분석용 저장소 식별
+        self._is_test_repo = repo_path == "dummy/repo"
+        self._is_multiple_repos = repo_path == "multiple_repos"
+        
+        # 테스트용이나 통합 분석용이 아닌 경우에만 실제 저장소 존재 여부 확인
+        if not self._is_test_repo and not self._is_multiple_repos:
+            if not check_github_repo_exists(repo_path):
+                logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
+                sys.exit(1)
+        elif self._is_test_repo:
+            logging.info(f"ℹ️ [TEST MODE] '{repo_path}'는 테스트용 저장소로 간주합니다.")
+        elif self._is_multiple_repos:
+            logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
 
         self.repo_path = repo_path
         self.participants: Dict = {}
@@ -124,6 +134,14 @@ class RepoAnalyzer:
         PR의 경우, 실제로 병합된 경우만 점수에 반영.
         이슈는 open / reopened / completed 상태만 점수에 반영합니다.
         """
+        # 테스트용 저장소나 통합 분석용인 경우 API 호출을 건너뜁니다
+        if self._is_test_repo:
+            logging.info(f"ℹ️ [TEST MODE] '{self.repo_path}'는 테스트용 저장소입니다. 실제 GitHub API 호출을 수행하지 않습니다.")
+            return
+        elif self._is_multiple_repos:
+            logging.info(f"ℹ️ [통합 분석] 통합 분석을 위한 저장소입니다. API 호출을 건너뜁니다.")
+            return
+            
         page = 1
         per_page = 100
 

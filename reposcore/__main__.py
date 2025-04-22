@@ -201,7 +201,7 @@ def main():
         if not validate_repo_format(repo):
             logging.error(f"오류: 저장소 '{repo}'는 'owner/repo' 형식으로 입력해야 합니다. 예) 'oss2025hnu/reposcore-py'")
             sys.exit(1)
-        if not check_github_repo_exists(repo, bypass=False):
+        if not check_github_repo_exists(repo):
             logging.warning(f"입력한 저장소 '{repo}'가 깃허브에 존재하지 않을 수 있음.")
             sys.exit(1)
 
