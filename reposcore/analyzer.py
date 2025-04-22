@@ -64,9 +64,9 @@ class RepoAnalyzer:
         'height_per_participant': 0.4,  # 참여자당 차트 높이
         'min_height': 3.0,             # 최소 차트 높이
         'bar_height': 0.5,             # 막대 높이
-        'figure_width': 10,            # 차트 너비
-        'label_offset': 0.5,           # 레이블 오프셋
-        'font_size': 9                 # 폰트 크기
+        'figure_width': 12,            # 차트 너비 (텍스트 잘림 방지 위해 증가)
+        'font_size': 9,                # 폰트 크기
+        'text_padding': 0.1            # 텍스트 배경 상자 패딩
     }
     
     # 등급 기준
@@ -83,9 +83,7 @@ class RepoAnalyzer:
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
     def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
-
-        if not check_github_repo_exists(repo_path, bypass=True): #테스트 중이므로 무조건 True 반환
-
+        if not check_github_repo_exists(repo_path): #테스트 중이므로 무조건 True 반환
             logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
             sys.exit(1)
 
@@ -556,6 +554,11 @@ class RepoAnalyzer:
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
+        # 동적 레이블 오프셋과 여백 계산 (텍스트 잘림 방지)
+        max_score = max(scores_sorted or [100])  # 최대 점수 (최소 100으로 기본값)
+        plt.xlim(0, max_score + 30)  # 가로축 범위: 최대 점수 + 20
+        dynamic_offset = 0.05 * max_score  # 점수 비례 오프셋
+
         # 점수와 활동 비율 표시
         for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
             participant = participants[i]
@@ -577,12 +580,15 @@ class RepoAnalyzer:
             # 활동 비율 표시 (앞글자만 사용)
             ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
             
+            # 텍스트 잘림 방지: 배경 상자 추가, 테두리 제거, 캔버스 밖 표시 허용
             plt.text(
-                bar.get_width() + self.CHART_CONFIG['label_offset'],
+                bar.get_width() + dynamic_offset,
                 bar.get_y() + bar.get_height() / 2,
                 f'{score_text}\n{ratio_text}',
                 va='center',
-                fontsize=self.CHART_CONFIG['font_size']
+                fontsize=self.CHART_CONFIG['font_size'],
+                bbox=dict(facecolor='white', alpha=0.8, pad=self.CHART_CONFIG['text_padding'], edgecolor='none'),
+                clip_on=False
             )
 
         # 디렉토리가 없으면 생성
@@ -590,7 +596,7 @@ class RepoAnalyzer:
         if save_dir and not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
 
-        plt.subplots_adjust(left=0.25, right=0.98, top=0.93, bottom=0.05)
+        plt.subplots_adjust(left=0.2, right=0.98, top=0.93, bottom=0.05)
         plt.savefig(save_path)
         logging.info(f"📈 차트 저장 완료: {save_path}")
         plt.close()
