@@ -102,7 +102,7 @@ def parse_arguments() -> argparse.Namespace:
         nargs='+',
         default=[FORMAT_ALL],
         metavar=f"{{{VALID_FORMATS_DISPLAY}}}",
-        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART}). 옵션: {VALID_FORMATS_DISPLAY}"
+        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART})"
     )
     parser.add_argument(
         "--grade",
