@@ -12,12 +12,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from .utils.retry_request import retry_request
 from .utils.theme_manager import ThemeManager 
+from .utils.github_utils import check_github_repo_exists
 
 import logging
 import sys
 import os
-
-from .utils.github_utils import check_github_repo_exists
 
 logging.basicConfig(
     level=logging.INFO,
@@ -335,7 +334,19 @@ class RepoAnalyzer:
         df.to_csv(save_path, index=False)
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
         
-        count_csv_path = os.path.join(dir_path or '.', "count.csv")
+    def generate_count_csv(self, scores: Dict, save_path: str = None) -> None:
+        """
+        점수 딕셔너리를 기반으로 각 활동 유형별 개수를 count.csv 파일로 저장합니다.
+        
+        Args:
+            scores: 사용자별 점수 딕셔너리
+            save_path: 저장할 파일 경로 (지정하지 않으면 현재 디렉토리에 count.csv로 저장)
+        """
+        dir_path = os.path.dirname(save_path) if save_path else '.'
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            
+        count_csv_path = os.path.join(dir_path, "count.csv")
         with open(count_csv_path, 'w') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
             for name, score in scores.items():
@@ -346,6 +357,7 @@ class RepoAnalyzer:
                 is_doc = int(score["document issue"] / self.score["doc_is"])
                 f.write(f"{name},{pr_fb},{pr_doc},{pr_typo},{is_fb},{is_doc}\n")
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
+        return count_csv_path
 
     def generate_text(self, scores: Dict, save_path) -> None:
         # 기존 table.txt 생성

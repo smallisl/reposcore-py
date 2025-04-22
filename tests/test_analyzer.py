@@ -114,22 +114,22 @@ def test_generate_table_creates_file():
     analyzer = RepoAnalyzer("dummy/repo")
     scores = {
         "alice": {
-            "p_enhancement": 3,
-            "p_bug": 0,
-            "p_typo": 1,
-            "p_documentation": 3,
-            "i_enhancement": 3,
-            "i_bug": 0,
-            "i_documentation": 3,
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 1,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 25,
+            "rate": 100
         },
         "bob": {
-            "p_enhancement": 3,
-            "p_bug": 0,
-            "p_typo": 0,
-            "p_documentation": 3,
-            "i_enhancement": 3,
-            "i_bug": 0,
-            "i_documentation": 3,
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 0,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 24,
+            "rate": 96
         }
     }
 
@@ -137,28 +137,65 @@ def test_generate_table_creates_file():
         filepath = os.path.join(tmpdir, "test_table.csv")
         analyzer.generate_table(scores, save_path=filepath)
         assert os.path.isfile(filepath), "CSV 파일이 생성되지 않았습니다."
+        # count.csv는 더 이상 generate_table에서 생성하지 않음
+        count_path = os.path.join(os.path.dirname(filepath), "count.csv")
+        assert not os.path.isfile(count_path), "count.csv 파일이 generate_table에서 생성되었습니다."
 
+def test_generate_count_csv_creates_file():
+    analyzer = RepoAnalyzer("dummy/repo")
+    scores = {
+        "alice": {
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 1,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 25,
+            "rate": 100
+        },
+        "bob": {
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 0,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 24,
+            "rate": 96
+        }
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filepath = os.path.join(tmpdir, "test_scores.csv")
+        count_path = analyzer.generate_count_csv(scores, save_path=filepath)
+        assert os.path.isfile(count_path), "count.csv 파일이 생성되지 않았습니다."
+        
+        # 생성된 파일 내용 확인
+        with open(count_path, 'r') as f:
+            content = f.read()
+            assert "name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue" in content
+            assert "alice,3,3,1,3,3" in content
+            assert "bob,3,3,0,3,3" in content
 
 def test_generate_chart_creates_file():
     analyzer = RepoAnalyzer("dummy/repo")
     scores = {
         "alice": {
-            "p_enhancement": 3,
-            "p_bug": 0,
-            "p_typo": 0,
-            "p_documentation": 3,
-            "i_enhancement": 3,
-            "i_bug": 0,
-            "i_documentation": 3,
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 0,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 24,
+            "rate": 100
         },
         "bob": {
-            "p_enhancement": 3,
-            "p_bug": 0,
-            "p_typo": 0,
-            "p_documentation": 3,
-            "i_enhancement": 3,
-            "i_bug": 0,
-            "i_documentation": 3,
+            "feat/bug PR": 9,
+            "document PR": 6,
+            "typo PR": 0,
+            "feat/bug issue": 6,
+            "document issue": 3,
+            "total": 24,
+            "rate": 100
         }
     }
 

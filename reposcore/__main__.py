@@ -261,6 +261,7 @@ def main():
             if FORMAT_TABLE in formats:
                 table_path = os.path.join(repo_output_dir, "score.csv")
                 repo_aggregator.generate_table(repo_scores, save_path=table_path)
+                repo_aggregator.generate_count_csv(repo_scores, save_path=table_path)
                 logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
 
             # 2) 텍스트 테이블 저장
@@ -303,6 +304,7 @@ def main():
         if FORMAT_TABLE in formats:
             table_path = os.path.join(args.output, "score.csv")
             aggregator.generate_table(scores, save_path=table_path)
+            aggregator.generate_count_csv(scores, save_path=table_path)
             logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
         # 통합 텍스트
