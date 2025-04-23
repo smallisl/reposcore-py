@@ -30,7 +30,7 @@
 
 그럴 때는 직접 명령어를 입력해서 테스트해야 함.
 
-그럴 때 매번 긴 명령어를 타이핑하는 게 귀찮으으므로 다음과 같은 쉘 스크립트 파일을 `run.sh`같은 이름으로 만들고
+그럴 때 매번 긴 명령어를 타이핑하는 게 귀찮으므로 다음과 같은 쉘 스크립트 파일을 `run.sh`같은 이름으로 만들고
 ```bash
 MYTOKEN=<자신의깃헙토큰>
 REPOS="oss2025hnu/reposcore-py oss2025hnu/reposcore-js oss2025hnu/reposcore-cs"
