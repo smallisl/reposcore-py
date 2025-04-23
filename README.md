@@ -39,6 +39,7 @@ options:
   --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
   --format {table, text, chart, all} [{table, text, chart, all} ...]
                         결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart)
+                        (기본값:'all')
   --grade               차트에 등급 표시
   --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
   --token TOKEN         API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰

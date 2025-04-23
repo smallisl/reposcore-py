@@ -33,7 +33,7 @@ GITHUB_BASE_URL = "https://github.com/"
 
 # 친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):
-    def error(self, message):
+    def error(self, message: str) -> None:
         if '--format' in message:
             # --format 옵션에서만 오류 메시지를 사용자 정의
             logging.error(f"❌ 인자 오류: {message}")
@@ -102,7 +102,7 @@ def parse_arguments() -> argparse.Namespace:
         nargs='+',
         default=[FORMAT_ALL],
         metavar=f"{{{VALID_FORMATS_DISPLAY}}}",
-        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART})"
+        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART}) (기본값:'{FORMAT_ALL}')"
     )
     parser.add_argument(
         "--grade",
@@ -137,7 +137,10 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def merge_participants(overall: dict, new_data: dict) -> dict:
+def merge_participants(
+    overall: dict[str, dict[str, int]],
+    new_data: dict[str, dict[str, int]]
+) -> dict[str, dict[str, int]]:
     """두 participants 딕셔너리를 병합합니다."""
     for user, activities in new_data.items():
         if user not in overall:
@@ -148,7 +151,7 @@ def merge_participants(overall: dict, new_data: dict) -> dict:
                 overall[user][key] = overall[user].get(key, 0) + value
     return overall
 
-def validate_token(github_token: str):
+def validate_token(github_token: str) -> None:
     headers = {}
     if github_token:
         headers["Authorization"] = f"token {github_token}"
@@ -157,7 +160,7 @@ def validate_token(github_token: str):
         logging.error('❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.')
         sys.exit(1)
 
-def main():
+def main() -> None:
     """Main execution function"""
     args = parse_arguments()
     github_token = args.token
@@ -201,7 +204,7 @@ def main():
         if not validate_repo_format(repo):
             logging.error(f"오류: 저장소 '{repo}'는 'owner/repo' 형식으로 입력해야 합니다. 예) 'oss2025hnu/reposcore-py'")
             sys.exit(1)
-        if not check_github_repo_exists(repo, bypass=False):
+        if not check_github_repo_exists(repo):
             logging.warning(f"입력한 저장소 '{repo}'가 깃허브에 존재하지 않을 수 있음.")
             sys.exit(1)
 
@@ -222,25 +225,32 @@ def main():
 
         os.makedirs(args.output, exist_ok=True)
 
-        if args.use_cache and os.path.exists(cache_path):
+        cache_update_required = os.path.exists(cache_path) and analyzer.is_cache_update_required(cache_path)
+
+        if args.use_cache and os.path.exists(cache_path) and not cache_update_required:
             logging.info(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.")
             with open(cache_path, "r", encoding="utf-8") as f:
-                analyzer.participants = json.load(f)
+                cached_json = json.load(f)
+                analyzer.participants = cached_json['participants']
+                analyzer.previous_create_at = cached_json['update_time']
         else:
-            logging.info(f"🔄 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.")
+            if args.use_cache and cache_update_required:
+                logging.info(f"🔄 리포지토리의 최근 이슈 생성 시간이 캐시파일의 생성 시간보다 최근입니다. GitHub API로 데이터를 수집합니다.")
+            else:
+                logging.info(f"🔄 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.")
             analyzer.collect_PRs_and_issues()
             if not getattr(analyzer, "_data_collected", True):
                 logging.error("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
                 logging.error("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
                 sys.exit(1)
             with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+                json.dump({'update_time':analyzer.previous_create_at, 'participants': analyzer.participants}, f, indent=2, ensure_ascii=False)
 
         try:
             # 1) 사용자 정보 로드 (없으면 None)
             user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
                 if args.user_info and os.path.exists(args.user_info) else None
- 
+
             # 2) 미리 생성해 둔 repo_aggregator에 참가자 데이터 할당
             repo_aggregator.participants = analyzer.participants
 

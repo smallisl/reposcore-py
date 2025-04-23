@@ -10,17 +10,12 @@ def validate_repo_format(repo: str) -> bool:
         print("저장소 형식이 올바르지 않습니다. 'owner/repo' 형식으로 입력해주세요.")
         return False
 
-def check_github_repo_exists(repo: str, bypass: bool = False) -> bool:
+def check_github_repo_exists(repo: str) -> bool:
     """
     GitHub 저장소 존재 여부를 확인하는 함수.
-
-    - bypass=True인 경우: 무조건 True 반환 (테스트용).
-    - bypass=False인 경우: 실제 GitHub API로 확인.
+    
+    API 요청을 통해 저장소가 실제로 존재하는지 확인합니다.
     """
-    if bypass:
-        logging.warning("⚠️ [TEST MODE] check_github_repo_exists()는 항상 True를 반환합니다. 실제 검사는 수행되지 않습니다.")
-        return True
-
     url = f"https://api.github.com/repos/{repo}"
     response = requests.get(url)
 
