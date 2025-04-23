@@ -1,0 +1,13 @@
+{
+    "name": "Python RepoScore DevContainer",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-python.python",           
+          "njpwerner.autodocstring"     
+        ]
+      }
+    }
+  }
+  
