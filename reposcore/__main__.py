@@ -33,7 +33,7 @@ GITHUB_BASE_URL = "https://github.com/"
 
 # 친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):
-    def error(self, message):
+    def error(self, message: str) -> None:
         if '--format' in message:
             # --format 옵션에서만 오류 메시지를 사용자 정의
             logging.error(f"❌ 인자 오류: {message}")
@@ -137,7 +137,10 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-def merge_participants(overall: dict, new_data: dict) -> dict:
+def merge_participants(
+    overall: dict[str, dict[str, int]],
+    new_data: dict[str, dict[str, int]]
+) -> dict[str, dict[str, int]]:
     """두 participants 딕셔너리를 병합합니다."""
     for user, activities in new_data.items():
         if user not in overall:
@@ -148,7 +151,7 @@ def merge_participants(overall: dict, new_data: dict) -> dict:
                 overall[user][key] = overall[user].get(key, 0) + value
     return overall
 
-def validate_token(github_token: str):
+def validate_token(github_token: str) -> None:
     headers = {}
     if github_token:
         headers["Authorization"] = f"token {github_token}"
@@ -157,7 +160,7 @@ def validate_token(github_token: str):
         logging.error('❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.')
         sys.exit(1)
 
-def main():
+def main() -> None:
     """Main execution function"""
     args = parse_arguments()
     github_token = args.token

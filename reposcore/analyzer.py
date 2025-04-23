@@ -98,7 +98,7 @@ class RepoAnalyzer:
             logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
 
         self.repo_path = repo_path
-        self.participants: Dict = {}
+        self.participants: Dict[str, Dict[str, int]] = {}
         self.score = self.SCORE_WEIGHTS.copy()
 
         self.theme_manager = ThemeManager()  # 테마 매니저 초기화
@@ -280,7 +280,7 @@ class RepoAnalyzer:
             self.score['doc_is'] * i_d_at
         )
 
-    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict:
+    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict[str, float]:
         """점수 딕셔너리 생성"""
         return {
             "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
@@ -291,7 +291,7 @@ class RepoAnalyzer:
             "total": total
         }
 
-    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict:
+    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict[str, Dict[str, float]]:
         """최종 점수 계산 및 정렬"""
         # 비율 계산
         for participant in scores:
@@ -305,7 +305,7 @@ class RepoAnalyzer:
 
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
-    def calculate_scores(self, user_info=None) -> Dict:
+    def calculate_scores(self, user_info: Optional[Dict[str, str]] = None) -> Dict[str, Dict[str, float]]:
         """참여자별 점수 계산"""
         scores = {}
         total_score_sum = 0
@@ -333,7 +333,7 @@ class RepoAnalyzer:
 
         return self._finalize_scores(scores, total_score_sum, user_info)
 
-    def calculate_averages(self, scores):
+    def calculate_averages(self, scores: Dict[str, Dict[str, float]]) -> Dict[str, float]:
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
             return {"feat/bug PR": 0, "document PR": 0, "typo PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
@@ -358,7 +358,7 @@ class RepoAnalyzer:
 
         return averages
 
-    def generate_table(self, scores: Dict, save_path) -> None:
+    def generate_table(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
@@ -395,7 +395,7 @@ class RepoAnalyzer:
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
         return count_csv_path
 
-    def generate_text(self, scores: Dict, save_path) -> None:
+    def generate_text(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
         # 기존 table.txt 생성
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
@@ -494,7 +494,7 @@ class RepoAnalyzer:
         
         return feat_bug_ratio, doc_ratio, typo_ratio
 
-    def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
+    def generate_chart(self, scores: Dict[str, Dict[str, float]], save_path: str, show_grade: bool = False) -> None:
 
       # Linux 환경에서 CJK 폰트 수동 설정
         # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
