@@ -1,10 +1,10 @@
 class ThemeManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.themes = {}
         self.current_theme = 'default'
         self._initialize_default_themes()
 
-    def _initialize_default_themes(self):
+    def _initialize_default_themes(self) -> None:
         self.themes['default'] = {
             'colors': {
                 'primary': '#007bff',

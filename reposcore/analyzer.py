@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import json
 from typing import Dict, Optional
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
@@ -8,7 +8,7 @@ import matplotlib.cm as cm
 import pandas as pd
 import requests
 from prettytable import PrettyTable
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from .utils.retry_request import retry_request
 from .utils.theme_manager import ThemeManager 
@@ -28,7 +28,7 @@ ERROR_MESSAGES = {
     401: "❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.",
     403: ("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.\n"
             "🔑 토큰 없이 실행하면 1시간에 최대 60회 요청만 허용됩니다.\n"
-            "💡 해결법: --api-key 옵션으로 GitHub 개인 액세스 토큰을 설정해 주세요."),
+            "💡 해결법: --token 옵션으로 GitHub 개인 액세스 토큰을 입력해 주세요."),
     404: "⚠️ 요청 실패 (404): 리포지토리가 존재하지 않습니다.",
     500: "⚠️ 요청 실패 (500): GitHub 내부 서버 오류 발생!",
     503: "⚠️ 요청 실패 (503): 서비스 불가",
@@ -98,17 +98,29 @@ class RepoAnalyzer:
             logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
 
         self.repo_path = repo_path
-        self.participants: Dict = {}
+        self.participants: Dict[str, Dict[str, int]] = {}
         self.score = self.SCORE_WEIGHTS.copy()
 
         self.theme_manager = ThemeManager()  # 테마 매니저 초기화
         self.set_theme(theme)                # 테마 설정
 
         self._data_collected = True
+        self.__previous_create_at = None
 
         self.SESSION = requests.Session()
         if token:
             self.SESSION.headers.update({'Authorization': f'Bearer {token}'})
+
+    @property
+    def previous_create_at(self) -> int | None:
+        if self.__previous_create_at is None:
+            return None
+        else:
+            return int(self.__previous_create_at.timestamp())
+
+    @previous_create_at.setter
+    def previous_create_at(self, value):
+        self.__previous_create_at = datetime.fromtimestamp(value, tz=timezone.utc)
 
     def set_theme(self, theme_name: str) -> None:
         if theme_name in self.theme_manager.themes:
@@ -166,6 +178,14 @@ class RepoAnalyzer:
                 break
 
             for item in items:
+                if 'created_at' not in item:
+                    logging.warning(f"⚠️ 요청 분석 실패")
+                    return
+
+                server_create_datetime = datetime.fromisoformat(item['created_at'])
+
+                self.__previous_create_at = server_create_datetime if self.__previous_create_at is None else max(self.__previous_create_at,server_create_datetime)
+
                 author = item.get('user', {}).get('login', 'Unknown')
                 if author not in self.participants:
                     self.participants[author] = {
@@ -260,7 +280,7 @@ class RepoAnalyzer:
             self.score['doc_is'] * i_d_at
         )
 
-    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict:
+    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict[str, float]:
         """점수 딕셔너리 생성"""
         return {
             "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
@@ -271,7 +291,7 @@ class RepoAnalyzer:
             "total": total
         }
 
-    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict:
+    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict[str, Dict[str, float]]:
         """최종 점수 계산 및 정렬"""
         # 비율 계산
         for participant in scores:
@@ -285,7 +305,7 @@ class RepoAnalyzer:
 
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
-    def calculate_scores(self, user_info=None) -> Dict:
+    def calculate_scores(self, user_info: Optional[Dict[str, str]] = None) -> Dict[str, Dict[str, float]]:
         """참여자별 점수 계산"""
         scores = {}
         total_score_sum = 0
@@ -313,7 +333,7 @@ class RepoAnalyzer:
 
         return self._finalize_scores(scores, total_score_sum, user_info)
 
-    def calculate_averages(self, scores):
+    def calculate_averages(self, scores: Dict[str, Dict[str, float]]) -> Dict[str, float]:
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
             return {"feat/bug PR": 0, "document PR": 0, "typo PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
@@ -338,7 +358,7 @@ class RepoAnalyzer:
 
         return averages
 
-    def generate_table(self, scores: Dict, save_path) -> None:
+    def generate_table(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
@@ -375,7 +395,7 @@ class RepoAnalyzer:
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
         return count_csv_path
 
-    def generate_text(self, scores: Dict, save_path) -> None:
+    def generate_text(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
         # 기존 table.txt 생성
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
@@ -474,7 +494,7 @@ class RepoAnalyzer:
         
         return feat_bug_ratio, doc_ratio, typo_ratio
 
-    def generate_chart(self, scores: Dict, save_path: str, show_grade: bool = False) -> None:
+    def generate_chart(self, scores: Dict[str, Dict[str, float]], save_path: str, show_grade: bool = False) -> None:
 
       # Linux 환경에서 CJK 폰트 수동 설정
         # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
@@ -624,3 +644,46 @@ class RepoAnalyzer:
         plt.savefig(save_path)
         logging.info(f"📈 차트 저장 완료: {save_path}")
         plt.close()
+
+    def is_cache_update_required(self, cache_path: str) -> bool:
+        """캐시 데이터 업데이트 필요 여부를 확인합니다.
+
+            지정된 캐시 파일의 존재 여부 및 최종 수정 시간을 확인하여
+            캐시를 업데이트해야 하는지 여부를 결정합니다.
+
+            Args:
+                cache_path (str): 확인할 캐시 파일의 경로입니다.
+
+            Returns:
+                bool: 캐시 업데이트가 필요한 경우 True, 그렇지 않은 경우 False를 반환합니다.
+                      캐시 파일이 존재하지 않거나, 마지막 수정 시간이 특정 조건(예: 만료 시간 초과)을
+                      만족하는 경우 True를 반환할 수 있습니다.
+        """
+        with open(cache_path,'r') as f:
+            url = f"https://api.github.com/repos/{self.repo_path}/issues"
+
+            response = retry_request(self.SESSION,
+                                     url,
+                                     max_retries=3,
+                                     params={
+                                         'state': 'all',
+                                         'per_page': 1,
+                                     })
+            if self._handle_api_error(response.status_code):
+                return False
+
+            response_json = response.json()[0]
+
+            if 'created_at' not in response_json:
+                logging.warning(f"⚠️ 요청 분석 실패")
+                return False
+
+            server_create_datetime = datetime.fromisoformat(response_json['created_at'])
+
+            stat_json = json.load(f)
+            if 'update_time' not in stat_json:
+                return False
+
+            cache_create_datetime = datetime.fromtimestamp(stat_json['update_time'], tz=timezone.utc)
+
+            return cache_create_datetime < server_create_datetime
