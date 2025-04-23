@@ -102,7 +102,7 @@ def parse_arguments() -> argparse.Namespace:
         nargs='+',
         default=[FORMAT_ALL],
         metavar=f"{{{VALID_FORMATS_DISPLAY}}}",
-        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART}). 옵션: {VALID_FORMATS_DISPLAY}"
+        help =  f"결과 출력 형식 선택 (복수 선택 가능, 예: --format {FORMAT_TABLE} {FORMAT_CHART})"
     )
     parser.add_argument(
         "--grade",
@@ -177,6 +177,22 @@ def main() -> None:
         check_rate_limit(token=github_token)
         sys.exit(0)
 
+   # --user-info 옵션으로 지정된 파일이 존재하는지, JSON 파싱이 가능한지 검증
+    if args.user_info:
+        # 1) 파일 존재 여부 확인
+        if not os.path.isfile(args.user_info):
+            logging.error("❌ 사용자 정보 파일을 찾을 수 없습니다.")
+            sys.exit(1)
+        # 2) JSON 문법 오류 확인
+        try:
+            with open(args.user_info, "r", encoding="utf-8") as f:
+                user_info = json.load(f)
+        except json.JSONDecodeError:
+            logging.error("❌ 사용자 정보 파일이 올바른 JSON 형식이 아닙니다.")
+            sys.exit(1)
+    else:
+        user_info = None
+
     repositories: List[str] = args.repository
     # 쉼표로 여러 저장소가 입력된 경우 분리
     final_repositories = list(dict.fromkeys(
@@ -188,7 +204,7 @@ def main() -> None:
         if not validate_repo_format(repo):
             logging.error(f"오류: 저장소 '{repo}'는 'owner/repo' 형식으로 입력해야 합니다. 예) 'oss2025hnu/reposcore-py'")
             sys.exit(1)
-        if not check_github_repo_exists(repo, bypass=False):
+        if not check_github_repo_exists(repo):
             logging.warning(f"입력한 저장소 '{repo}'가 깃허브에 존재하지 않을 수 있음.")
             sys.exit(1)
 
@@ -201,18 +217,25 @@ def main() -> None:
         logging.info(f"분석 시작: {repo}")
 
         analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+        repo_aggregator = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+
         # 저장소별 캐시 파일 생성 (예: cache_oss2025hnu_reposcore-py.json)
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
         cache_path = os.path.join(args.output, cache_file_name)
 
         os.makedirs(args.output, exist_ok=True)
 
-        if args.use_cache and os.path.exists(cache_path):
+        cache_update_required = True if os.path.exists(cache_path) and analyzer.is_cache_update_required(cache_path) else False
+
+        if args.use_cache and not cache_update_required:
             logging.info(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.")
             with open(cache_path, "r", encoding="utf-8") as f:
                 analyzer.participants = json.load(f)
         else:
-            logging.info(f"🔄 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.")
+            if args.use_cache and cache_update_required:
+                logging.info(f"🔄 리포지토리의 최근 이슈 생성 시간이 캐시파일의 생성 시간보다 최근입니다. GitHub API로 데이터를 수집합니다.")
+            else:
+                logging.info(f"🔄 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.")
             analyzer.collect_PRs_and_issues()
             if not getattr(analyzer, "_data_collected", True):
                 logging.error("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
@@ -222,11 +245,11 @@ def main() -> None:
                 json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
 
         try:
+            # 1) 사용자 정보 로드 (없으면 None)
             user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
                 if args.user_info and os.path.exists(args.user_info) else None
 
-            # 저장소별 aggregator 인스턴스 생성
-            repo_aggregator = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+            # 2) 미리 생성해 둔 repo_aggregator에 참가자 데이터 할당
             repo_aggregator.participants = analyzer.participants
 
             # 스코어 계산
@@ -246,6 +269,7 @@ def main() -> None:
             if FORMAT_TABLE in formats:
                 table_path = os.path.join(repo_output_dir, "score.csv")
                 repo_aggregator.generate_table(repo_scores, save_path=table_path)
+                repo_aggregator.generate_count_csv(repo_scores, save_path=table_path)
                 logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
 
             # 2) 텍스트 테이블 저장
@@ -273,6 +297,9 @@ def main() -> None:
     try:
         user_info = json.load(open(args.user_info, "r", encoding="utf-8")) \
             if args.user_info and os.path.exists(args.user_info) else None
+        # …이제 여기에 바로 user_info 변수 사용…
+        repo_scores = repo_aggregator.calculate_scores(user_info)
+
 
         scores = aggregator.calculate_scores(user_info)
         formats = set(args.format)
@@ -285,6 +312,7 @@ def main() -> None:
         if FORMAT_TABLE in formats:
             table_path = os.path.join(args.output, "score.csv")
             aggregator.generate_table(scores, save_path=table_path)
+            aggregator.generate_count_csv(scores, save_path=table_path)
             logging.info(f"\n[통합] CSV 저장 완료: {table_path}")
 
         # 통합 텍스트

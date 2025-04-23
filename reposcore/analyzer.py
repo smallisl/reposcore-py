@@ -8,16 +8,15 @@ import matplotlib.cm as cm
 import pandas as pd
 import requests
 from prettytable import PrettyTable
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from .utils.retry_request import retry_request
 from .utils.theme_manager import ThemeManager 
+from .utils.github_utils import check_github_repo_exists
 
 import logging
 import sys
 import os
-
-from .utils.github_utils import check_github_repo_exists
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +36,18 @@ ERROR_MESSAGES = {
             "⚠️ 유효성 검사에 실패 했거나, 엔드 포인트가 스팸 처리되었습니다.")
 }
 
+def get_emoji(score):
+    if score >= 90: return "🌟"     # 최상위 성과
+    elif score >= 80: return "⭐"    # 탁월한 성과
+    elif score >= 70: return "🎯"    # 목표 달성
+    elif score >= 60: return "🎨"    # 양호한 성과
+    elif score >= 50: return "🌱"    # 성장 중
+    elif score >= 40: return "🍀"    # 발전 가능성
+    elif score >= 30: return "🌿"    # 초기 단계
+    elif score >= 20: return "🍂"    # 개선 필요
+    elif score >= 10: return "🍁"    # 참여 시작
+    else: return "🌑"                # 최소 참여
+
 class RepoAnalyzer:
     """Class to analyze repository participation for scoring"""
     # 점수 가중치
@@ -53,9 +64,9 @@ class RepoAnalyzer:
         'height_per_participant': 0.4,  # 참여자당 차트 높이
         'min_height': 3.0,             # 최소 차트 높이
         'bar_height': 0.5,             # 막대 높이
-        'figure_width': 10,            # 차트 너비
-        'label_offset': 0.5,           # 레이블 오프셋
-        'font_size': 9                 # 폰트 크기
+        'figure_width': 12,            # 차트 너비 (텍스트 잘림 방지 위해 증가)
+        'font_size': 9,                # 폰트 크기
+        'text_padding': 0.1            # 텍스트 배경 상자 패딩
     }
     
     # 등급 기준
@@ -72,9 +83,19 @@ class RepoAnalyzer:
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
     def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
-        if not check_github_repo_exists(repo_path, bypass=True): #테스트 중이므로 무조건 True 반환
-            logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
-            sys.exit(1)
+        # 테스트용 저장소나 통합 분석용 저장소 식별
+        self._is_test_repo = repo_path == "dummy/repo"
+        self._is_multiple_repos = repo_path == "multiple_repos"
+        
+        # 테스트용이나 통합 분석용이 아닌 경우에만 실제 저장소 존재 여부 확인
+        if not self._is_test_repo and not self._is_multiple_repos:
+            if not check_github_repo_exists(repo_path):
+                logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
+                sys.exit(1)
+        elif self._is_test_repo:
+            logging.info(f"ℹ️ [TEST MODE] '{repo_path}'는 테스트용 저장소로 간주합니다.")
+        elif self._is_multiple_repos:
+            logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
 
         self.repo_path = repo_path
         self.participants: Dict[str, Dict[str, int]] = {}
@@ -113,6 +134,14 @@ class RepoAnalyzer:
         PR의 경우, 실제로 병합된 경우만 점수에 반영.
         이슈는 open / reopened / completed 상태만 점수에 반영합니다.
         """
+        # 테스트용 저장소나 통합 분석용인 경우 API 호출을 건너뜁니다
+        if self._is_test_repo:
+            logging.info(f"ℹ️ [TEST MODE] '{self.repo_path}'는 테스트용 저장소입니다. 실제 GitHub API 호출을 수행하지 않습니다.")
+            return
+        elif self._is_multiple_repos:
+            logging.info(f"ℹ️ [통합 분석] 통합 분석을 위한 저장소입니다. API 호출을 건너뜁니다.")
+            return
+            
         page = 1
         per_page = 100
 
@@ -287,7 +316,7 @@ class RepoAnalyzer:
     def calculate_averages(self, scores: Dict[str, Dict[str, float]]) -> Dict[str, float]:
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
-            return {"feat/bug PR": 0, "document PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
+            return {"feat/bug PR": 0, "document PR": 0, "typo PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
 
         num_participants = len(scores)
         totals = {
@@ -321,7 +350,19 @@ class RepoAnalyzer:
         df.to_csv(save_path, index=False)
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
         
-        count_csv_path = os.path.join(dir_path or '.', "count.csv")
+    def generate_count_csv(self, scores: Dict, save_path: str = None) -> None:
+        """
+        점수 딕셔너리를 기반으로 각 활동 유형별 개수를 count.csv 파일로 저장합니다.
+        
+        Args:
+            scores: 사용자별 점수 딕셔너리
+            save_path: 저장할 파일 경로 (지정하지 않으면 현재 디렉토리에 count.csv로 저장)
+        """
+        dir_path = os.path.dirname(save_path) if save_path else '.'
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            
+        count_csv_path = os.path.join(dir_path, "count.csv")
         with open(count_csv_path, 'w') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
             for name, score in scores.items():
@@ -332,8 +373,10 @@ class RepoAnalyzer:
                 is_doc = int(score["document issue"] / self.score["doc_is"])
                 f.write(f"{name},{pr_fb},{pr_doc},{pr_typo},{is_fb},{is_doc}\n")
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
+        return count_csv_path
 
     def generate_text(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
+        # 기존 table.txt 생성
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
 
@@ -369,11 +412,45 @@ class RepoAnalyzer:
             os.makedirs(dir_path)
 
         # 생성 날짜 및 시간 추가 (텍스트 파일 상단)
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+        current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
         with open(save_path, 'w') as txt_file:
             txt_file.write(f"Generated on: {current_time}\n\n")
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
+
+        # score.txt 생성 (이모지 포함, grade 컬럼 제외)
+        score_table = PrettyTable()
+        score_table.field_names = ["name", "feat/bug PR", "document PR", "typo PR", "feat/bug issue", "document issue", "total", "rate"]
+
+        # 평균 행 추가
+        score_table.add_row([
+            "avg",
+            round(averages["feat/bug PR"], 1),
+            round(averages["document PR"], 1),
+            round(averages["typo PR"], 1),
+            round(averages["feat/bug issue"], 1),
+            round(averages["document issue"], 1),
+            round(averages["total"], 1),
+            f'{averages["rate"]:.1f}%'
+        ])
+
+        for name, score in scores.items():
+            score_table.add_row([
+                f"{get_emoji(score['total'])} {name}",
+                score["feat/bug PR"],
+                score["document PR"],
+                score["typo PR"],
+                score['feat/bug issue'],
+                score['document issue'],
+                score['total'],
+                f'{score["rate"]:.1f}%'
+            ])
+
+        score_path = os.path.join(dir_path or '.', "score.txt")
+        with open(score_path, 'w') as score_file:
+            score_file.write(f"Generated on: {current_time}\n\n")
+            score_file.write(str(score_table))
+        logging.info(f"📝 점수 텍스트 결과 저장 완료: {score_path}")
 
     def _calculate_activity_ratios(self, participant_scores: Dict) -> tuple[float, float, float]:
         """참여자의 FEAT/BUG/DOC 활동 비율을 계산"""
@@ -445,8 +522,25 @@ class RepoAnalyzer:
                 ranks.append(ranks[-1])
             current_rank += 1
 
+        # 등수를 영어 서수로 변환하는 함수
+        def get_ordinal_suffix(rank):
+            if rank == 1:
+                return "1st"
+            elif rank == 2:
+                return "2nd"
+            elif rank == 3:
+                return "3rd"
+            else:
+                return f"{rank}th"
+
+        # 사용자 이름에 등수 추가
+        ranked_participants = []
+        for i, participant in enumerate(participants):
+            rank_suffix = get_ordinal_suffix(ranks[i])
+            ranked_participants.append(f"{rank_suffix} {participant}")
+
         plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
-        bars = plt.barh(participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
+        bars = plt.barh(ranked_participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
 
         # 색상 매핑 (기본 colormap 또는 등급별 색상)
         if show_grade:
@@ -478,6 +572,11 @@ class RepoAnalyzer:
         plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
         plt.gca().invert_yaxis()
 
+        # 동적 레이블 오프셋과 여백 계산 (텍스트 잘림 방지)
+        max_score = max(scores_sorted or [100])  # 최대 점수 (최소 100으로 기본값)
+        plt.xlim(0, max_score + 30)  # 가로축 범위: 최대 점수 + 20
+        dynamic_offset = 0.05 * max_score  # 점수 비례 오프셋
+
         # 점수와 활동 비율 표시
         for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
             participant = participants[i]
@@ -493,18 +592,21 @@ class RepoAnalyzer:
                         break
                 grade = f" ({grade_assigned})"
 
-            # 점수, 등급, 순위 표시
-            score_text = f'{int(score)}{grade} ({ranks[i]}위)'
+            # 점수와 등급만 표시 (순위는 이름 앞에 표시되므로 제거)
+            score_text = f'{int(score)}{grade}'
             
             # 활동 비율 표시 (앞글자만 사용)
             ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
             
+            # 텍스트 잘림 방지: 배경 상자 추가, 테두리 제거, 캔버스 밖 표시 허용
             plt.text(
-                bar.get_width() + self.CHART_CONFIG['label_offset'],
+                bar.get_width() + dynamic_offset,
                 bar.get_y() + bar.get_height() / 2,
                 f'{score_text}\n{ratio_text}',
                 va='center',
-                fontsize=self.CHART_CONFIG['font_size']
+                fontsize=self.CHART_CONFIG['font_size'],
+                bbox=dict(facecolor='white', alpha=0.8, pad=self.CHART_CONFIG['text_padding'], edgecolor='none'),
+                clip_on=False
             )
 
         # 디렉토리가 없으면 생성
@@ -512,7 +614,46 @@ class RepoAnalyzer:
         if save_dir and not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
 
-        plt.subplots_adjust(left=0.25, right=0.98, top=0.93, bottom=0.05)
+        plt.subplots_adjust(left=0.2, right=0.98, top=0.93, bottom=0.05)
         plt.savefig(save_path)
         logging.info(f"📈 차트 저장 완료: {save_path}")
         plt.close()
+
+    def is_cache_update_required(self, cache_path: str) -> bool:
+        """캐시 데이터 업데이트 필요 여부를 확인합니다.
+
+            지정된 캐시 파일의 존재 여부 및 최종 수정 시간을 확인하여
+            캐시를 업데이트해야 하는지 여부를 결정합니다.
+
+            Args:
+                cache_path (str): 확인할 캐시 파일의 경로입니다.
+
+            Returns:
+                bool: 캐시 업데이트가 필요한 경우 True, 그렇지 않은 경우 False를 반환합니다.
+                      캐시 파일이 존재하지 않거나, 마지막 수정 시간이 특정 조건(예: 만료 시간 초과)을
+                      만족하는 경우 True를 반환할 수 있습니다.
+        """
+        url = f"https://api.github.com/repos/{self.repo_path}/issues"
+
+        response = retry_request(self.SESSION,
+                                 url,
+                                 max_retries=3,
+                                 params={
+                                     'state': 'all',
+                                     'per_page': 1,
+                                 })
+        if self._handle_api_error(response.status_code):
+            return False
+
+        response_json = response.json()[0]
+
+        if 'created_at' not in response_json:
+            logging.warning(f"⚠️ 요청 분석 실패")
+            return False
+
+        server_create_datetime = datetime.fromisoformat(response_json['created_at'])
+
+        cache_stat = os.stat(cache_path)
+        cache_create_datetime = datetime.fromtimestamp(cache_stat.st_ctime, tz=timezone.utc)
+
+        return cache_create_datetime < server_create_datetime

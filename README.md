@@ -38,14 +38,15 @@ options:
   -h, --help            도움말 표시 후 종료
   --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
   --format {table, text, chart, all} [{table, text, chart, all} ...]
-                        결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart). 옵션:
-                        table, text, chart, all
+                        결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart)
   --grade               차트에 등급 표시
   --use-cache           participants 데이터를 캐시에서 불러올지 여부 (기본: API를 통해 새로 수집)
   --token TOKEN         API 요청 제한 해제를 위한 깃허브 개인 액세스 토큰
   --check-limit         현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다.
   --user-info USER_INFO
                         사용자 정보 파일의 경로
+  --theme {default,dark}, -t {default,dark}
+                        테마 선택 (default 또는 dark)
 ```
 
 
