@@ -170,7 +170,7 @@ def test_generate_count_csv_creates_file():
         assert os.path.isfile(count_path), "count.csv 파일이 생성되지 않았습니다."
         
         # 생성된 파일 내용 확인
-        with open(count_path, 'r') as f:
+        with open(count_path, 'r', encoding='utf-8') as f:
             content = f.read()
             assert "name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue" in content
             assert "alice,3,3,1,3,3" in content

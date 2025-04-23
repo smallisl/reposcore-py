@@ -329,7 +329,7 @@ class RepoAnalyzer:
         if dir_path and not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        df.to_csv(save_path, index=False)
+        df.to_csv(save_path, index=False, encoding='utf-8')
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
         
     def generate_count_csv(self, scores: Dict, save_path: str = None) -> None:
@@ -345,7 +345,7 @@ class RepoAnalyzer:
             os.makedirs(dir_path)
             
         count_csv_path = os.path.join(dir_path, "count.csv")
-        with open(count_csv_path, 'w') as f:
+        with open(count_csv_path, 'w', encoding='utf-8') as f:
             f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
             for name, score in scores.items():
                 pr_fb = int(score["feat/bug PR"] / self.score["feat_bug_pr"])
@@ -395,7 +395,7 @@ class RepoAnalyzer:
 
         # 생성 날짜 및 시간 추가 (텍스트 파일 상단)
         current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-        with open(save_path, 'w') as txt_file:
+        with open(save_path, 'w', encoding='utf-8') as txt_file:
             txt_file.write(f"Generated on: {current_time}\n\n")
             txt_file.write(str(table))
         logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
@@ -429,7 +429,7 @@ class RepoAnalyzer:
             ])
 
         score_path = os.path.join(dir_path or '.', "score.txt")
-        with open(score_path, 'w') as score_file:
+        with open(score_path, 'w', encoding='utf-8') as score_file:
             score_file.write(f"Generated on: {current_time}\n\n")
             score_file.write(str(score_table))
         logging.info(f"📝 점수 텍스트 결과 저장 완료: {score_path}")
