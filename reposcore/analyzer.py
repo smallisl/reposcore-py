@@ -530,6 +530,12 @@ class RepoAnalyzer:
                 return "2nd"
             elif rank == 3:
                 return "3rd"
+            elif rank == 21 or rank == 31:
+                return f"{rank}st"
+            elif rank == 22:
+                return "22nd"
+            elif rank == 23:
+                return "23rd"
             else:
                 return f"{rank}th"
 
