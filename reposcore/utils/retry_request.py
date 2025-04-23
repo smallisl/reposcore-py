@@ -1,6 +1,6 @@
+from typing import Optional
 import requests
 import time
-
 
 def retry_request(
     session: requests.Session,
