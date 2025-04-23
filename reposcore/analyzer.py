@@ -559,7 +559,7 @@ class RepoAnalyzer:
         ranked_participants = []
         for i, participant in enumerate(participants):
             rank_suffix = get_ordinal_suffix(ranks[i])
-            ranked_participants.append(f"{rank_suffix} {participant}")
+            ranked_participants.append(f"{participant} ({rank_suffix})")
 
         plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
         bars = plt.barh(ranked_participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
