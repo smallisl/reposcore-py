@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import json
 from typing import Dict, Optional
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
@@ -105,10 +105,22 @@ class RepoAnalyzer:
         self.set_theme(theme)                # 테마 설정
 
         self._data_collected = True
+        self.__previous_create_at = None
 
         self.SESSION = requests.Session()
         if token:
             self.SESSION.headers.update({'Authorization': f'Bearer {token}'})
+
+    @property
+    def previous_create_at(self) -> int | None:
+        if self.__previous_create_at is None:
+            return None
+        else:
+            return int(self.__previous_create_at.timestamp())
+
+    @previous_create_at.setter
+    def previous_create_at(self, value):
+        self.__previous_create_at = datetime.fromtimestamp(value, tz=timezone.utc)
 
     def set_theme(self, theme_name: str) -> None:
         if theme_name in self.theme_manager.themes:
@@ -166,6 +178,14 @@ class RepoAnalyzer:
                 break
 
             for item in items:
+                if 'created_at' not in item:
+                    logging.warning(f"⚠️ 요청 분석 실패")
+                    return
+
+                server_create_datetime = datetime.fromisoformat(item['created_at'])
+
+                self.__previous_create_at = server_create_datetime if self.__previous_create_at is None else max(self.__previous_create_at,server_create_datetime)
+
                 author = item.get('user', {}).get('login', 'Unknown')
                 if author not in self.participants:
                     self.participants[author] = {
@@ -633,27 +653,31 @@ class RepoAnalyzer:
                       캐시 파일이 존재하지 않거나, 마지막 수정 시간이 특정 조건(예: 만료 시간 초과)을
                       만족하는 경우 True를 반환할 수 있습니다.
         """
-        url = f"https://api.github.com/repos/{self.repo_path}/issues"
+        with open(cache_path,'r') as f:
+            url = f"https://api.github.com/repos/{self.repo_path}/issues"
 
-        response = retry_request(self.SESSION,
-                                 url,
-                                 max_retries=3,
-                                 params={
-                                     'state': 'all',
-                                     'per_page': 1,
-                                 })
-        if self._handle_api_error(response.status_code):
-            return False
+            response = retry_request(self.SESSION,
+                                     url,
+                                     max_retries=3,
+                                     params={
+                                         'state': 'all',
+                                         'per_page': 1,
+                                     })
+            if self._handle_api_error(response.status_code):
+                return False
 
-        response_json = response.json()[0]
+            response_json = response.json()[0]
 
-        if 'created_at' not in response_json:
-            logging.warning(f"⚠️ 요청 분석 실패")
-            return False
+            if 'created_at' not in response_json:
+                logging.warning(f"⚠️ 요청 분석 실패")
+                return False
 
-        server_create_datetime = datetime.fromisoformat(response_json['created_at'])
+            server_create_datetime = datetime.fromisoformat(response_json['created_at'])
 
-        cache_stat = os.stat(cache_path)
-        cache_create_datetime = datetime.fromtimestamp(cache_stat.st_ctime, tz=timezone.utc)
+            stat_json = json.load(f)
+            if 'update_time' not in stat_json:
+                return False
 
-        return cache_create_datetime < server_create_datetime
+            cache_create_datetime = datetime.fromtimestamp(stat_json['update_time'], tz=timezone.utc)
+
+            return cache_create_datetime < server_create_datetime

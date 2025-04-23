@@ -222,12 +222,14 @@ def main():
 
         os.makedirs(args.output, exist_ok=True)
 
-        cache_update_required = True if os.path.exists(cache_path) and analyzer.is_cache_update_required(cache_path) else False
+        cache_update_required = os.path.exists(cache_path) and analyzer.is_cache_update_required(cache_path)
 
-        if args.use_cache and not cache_update_required:
+        if args.use_cache and os.path.exists(cache_path) and not cache_update_required:
             logging.info(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.")
             with open(cache_path, "r", encoding="utf-8") as f:
-                analyzer.participants = json.load(f)
+                cached_json = json.load(f)
+                analyzer.participants = cached_json['participants']
+                analyzer.previous_create_at = cached_json['update_time']
         else:
             if args.use_cache and cache_update_required:
                 logging.info(f"🔄 리포지토리의 최근 이슈 생성 시간이 캐시파일의 생성 시간보다 최근입니다. GitHub API로 데이터를 수집합니다.")
@@ -239,7 +241,7 @@ def main():
                 logging.error("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
                 sys.exit(1)
             with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(analyzer.participants, f, indent=2, ensure_ascii=False)
+                json.dump({'update_time':analyzer.previous_create_at, 'participants': analyzer.participants}, f, indent=2, ensure_ascii=False)
 
         try:
             # 1) 사용자 정보 로드 (없으면 None)
