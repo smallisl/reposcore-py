@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 import logging
 
+from .common_utils import *
 from .github_utils import *
 from .analyzer import RepoAnalyzer
 
@@ -19,14 +20,6 @@ FORMAT_ALL = "all"
 
 VALID_FORMATS = [FORMAT_TABLE, FORMAT_TEXT, FORMAT_CHART, FORMAT_ALL]
 VALID_FORMATS_DISPLAY = ", ".join(VALID_FORMATS)
-
-# logging 모듈 기본 설정 (analyzer.py와 동일한 설정)
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 
 # 친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):

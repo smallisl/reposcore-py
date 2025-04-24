@@ -8,8 +8,10 @@ import requests
 from prettytable import PrettyTable
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from .theme_manager import ThemeManager 
+
+from .common_utils import *
 from .github_utils import *
+from .theme_manager import ThemeManager 
 
 import logging
 import sys
