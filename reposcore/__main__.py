@@ -5,7 +5,7 @@ import sys
 import os
 import requests
 from .analyzer import RepoAnalyzer
-from typing import List
+
 from datetime import datetime
 import json
 import logging
