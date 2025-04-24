@@ -17,12 +17,6 @@ import logging
 import sys
 import os
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-
 ERROR_MESSAGES = {
     401: "❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.",
     403: ("⚠️ 요청 실패 (403): GitHub API rate limit에 도달했습니다.\n"
