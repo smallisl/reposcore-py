@@ -1,4 +1,5 @@
 import re
+import time
 import requests
 import logging
 
@@ -30,3 +31,26 @@ def check_github_repo_exists(repo: str) -> bool:
         logging.warning(f"⚠️ 요청 실패: HTTP 상태 코드 {response.status_code}")
 
     return False
+
+
+def retry_request(
+    session: requests.Session,
+    url: str,
+    max_retries: int = 3,
+    retry_delay: float = 1,
+    params: dict[str, str] | None = None,
+    headers: dict[str, str] | None = None
+) -> requests.Response:
+    """
+    주어진 URL에 대해 최대 max_retries 횟수만큼 요청을 재시도합니다.
+    """
+    response = None
+    for i in range(max_retries):
+        response = session.get(url, params=params, headers=headers)
+        if response.status_code == 200:
+            return response
+        elif i < max_retries - 1:
+            time.sleep(retry_delay)
+
+    return response
+
