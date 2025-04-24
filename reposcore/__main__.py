@@ -32,10 +32,6 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
             super().error(message)
         sys.exit(2)
 
-def validate_repo_format(repo: str) -> bool:
-    """Check if the repo input follows 'owner/repo' format"""
-    parts = repo.split("/")
-    return len(parts) == 2 and all(parts)
 
 def check_rate_limit(token: str | None = None) -> None:
     """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인하고 출력하는 함수"""
@@ -141,14 +137,6 @@ def merge_participants(
                 overall[user][key] = overall[user].get(key, 0) + value
     return overall
 
-def validate_token(github_token: str) -> None:
-    headers = {}
-    if github_token:
-        headers["Authorization"] = f"token {github_token}"
-    response = requests.get("https://api.github.com/user", headers=headers)
-    if response.status_code != 200:
-        logging.error('❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.')
-        sys.exit(1)
 
 def main() -> None:
     """Main execution function"""
