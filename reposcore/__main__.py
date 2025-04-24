@@ -32,22 +32,6 @@ class FriendlyArgumentParser(argparse.ArgumentParser):
             super().error(message)
         sys.exit(2)
 
-
-def check_rate_limit(token: str | None = None) -> None:
-    """현재 GitHub API 요청 가능 횟수와 전체 한도를 확인하고 출력하는 함수"""
-    headers = {}
-    if token:
-        headers["Authorization"] = f"token {token}"
-    response = requests.get("https://api.github.com/rate_limit", headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        core = data.get("resources", {}).get("core", {})
-        remaining = core.get("remaining", "N/A")
-        limit = core.get("limit", "N/A")
-        logging.info(f"GitHub API 요청 가능 횟수: {remaining} / {limit}")
-    else:
-        logging.error(f"API 요청 제한 정보를 가져오는데 실패했습니다 (status code: {response.status_code}).")
-
 def parse_arguments() -> argparse.Namespace:
     """커맨드라인 인자를 파싱하는 함수"""
     parser = FriendlyArgumentParser(
