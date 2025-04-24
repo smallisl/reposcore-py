@@ -5,7 +5,6 @@ import sys
 import os
 import requests
 from .analyzer import RepoAnalyzer
-
 from datetime import datetime
 import json
 import logging
@@ -193,7 +192,7 @@ def main() -> None:
     else:
         user_info = None
 
-    repositories: List[str] = args.repository
+    repositories: list[str] = args.repository
     # 쉼표로 여러 저장소가 입력된 경우 분리
     final_repositories = list(dict.fromkeys(
         [r.strip() for repo in repositories for r in repo.split(",") if r.strip()]

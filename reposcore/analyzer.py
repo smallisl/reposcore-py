@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import json
-from typing import Dict, Optional
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
 import pandas as pd
 import requests
 from prettytable import PrettyTable
@@ -82,7 +80,7 @@ class RepoAnalyzer:
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
-    def __init__(self, repo_path: str, token: Optional[str] = None, theme: str = 'default'):
+    def __init__(self, repo_path: str, token: str | None = None, theme: str = 'default'):
         # 테스트용 저장소나 통합 분석용 저장소 식별
         self._is_test_repo = repo_path == "dummy/repo"
         self._is_multiple_repos = repo_path == "multiple_repos"
@@ -98,7 +96,7 @@ class RepoAnalyzer:
             logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
 
         self.repo_path = repo_path
-        self.participants: Dict[str, Dict[str, int]] = {}
+        self.participants: dict[str, dict[str, int]] = {}
         self.score = self.SCORE_WEIGHTS.copy()
 
         self.theme_manager = ThemeManager()  # 테마 매니저 초기화
@@ -239,7 +237,7 @@ class RepoAnalyzer:
             for user, info in self.participants.items():
                 logging.info(f"{user}: {info}")
 
-    def _extract_pr_counts(self, activities: Dict) -> tuple[int, int, int, int, int]:
+    def _extract_pr_counts(self, activities: dict) -> tuple[int, int, int, int, int]:
         """PR 관련 카운트 추출"""
         p_f = activities.get('p_enhancement', 0)
         p_b = activities.get('p_bug', 0)
@@ -248,7 +246,7 @@ class RepoAnalyzer:
         p_fb = p_f + p_b
         return p_f, p_b, p_d, p_t, p_fb
 
-    def _extract_issue_counts(self, activities: Dict) -> tuple[int, int, int, int]:
+    def _extract_issue_counts(self, activities: dict) -> tuple[int, int, int, int]:
         """이슈 관련 카운트 추출"""
         i_f = activities.get('i_enhancement', 0)
         i_b = activities.get('i_bug', 0)
@@ -280,7 +278,7 @@ class RepoAnalyzer:
             self.score['doc_is'] * i_d_at
         )
 
-    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> Dict[str, float]:
+    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> dict[str, float]:
         """점수 딕셔너리 생성"""
         return {
             "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
@@ -291,7 +289,7 @@ class RepoAnalyzer:
             "total": total
         }
 
-    def _finalize_scores(self, scores: Dict, total_score_sum: float, user_info: Optional[Dict] = None) -> Dict[str, Dict[str, float]]:
+    def _finalize_scores(self, scores: dict, total_score_sum: float, user_info: dict | None = None) -> dict[str, dict[str, float]]:
         """최종 점수 계산 및 정렬"""
         # 비율 계산
         for participant in scores:
@@ -305,7 +303,7 @@ class RepoAnalyzer:
 
         return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
-    def calculate_scores(self, user_info: Optional[Dict[str, str]] = None) -> Dict[str, Dict[str, float]]:
+    def calculate_scores(self, user_info: dict[str, str] | None = None) -> dict[str, dict[str, float]]:
         """참여자별 점수 계산"""
         scores = {}
         total_score_sum = 0
@@ -333,7 +331,7 @@ class RepoAnalyzer:
 
         return self._finalize_scores(scores, total_score_sum, user_info)
 
-    def calculate_averages(self, scores: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+    def calculate_averages(self, scores: dict[str, dict[str, float]]) -> dict[str, float]:
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
         if not scores:
             return {"feat/bug PR": 0, "document PR": 0, "typo PR": 0, "feat/bug issue": 0, "document issue": 0, "total": 0, "rate": 0}
@@ -358,7 +356,7 @@ class RepoAnalyzer:
 
         return averages
 
-    def generate_table(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
+    def generate_table(self, scores: dict[str, dict[str, float]], save_path) -> None:
         df = pd.DataFrame.from_dict(scores, orient="index")
         df.reset_index(inplace=True)
         df.rename(columns={"index": "name"}, inplace=True)
@@ -370,7 +368,7 @@ class RepoAnalyzer:
         df.to_csv(save_path, index=False, encoding='utf-8')
         logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
         
-    def generate_count_csv(self, scores: Dict, save_path: str = None) -> None:
+    def generate_count_csv(self, scores: dict, save_path: str = None) -> None:
         """
         점수 딕셔너리를 기반으로 각 활동 유형별 개수를 count.csv 파일로 저장합니다.
         
@@ -395,7 +393,7 @@ class RepoAnalyzer:
         logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
         return count_csv_path
 
-    def generate_text(self, scores: Dict[str, Dict[str, float]], save_path) -> None:
+    def generate_text(self, scores: dict[str, dict[str, float]], save_path) -> None:
         # 기존 table.txt 생성
         table = PrettyTable()
         table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
@@ -472,7 +470,7 @@ class RepoAnalyzer:
             score_file.write(str(score_table))
         logging.info(f"📝 점수 텍스트 결과 저장 완료: {score_path}")
 
-    def _calculate_activity_ratios(self, participant_scores: Dict) -> tuple[float, float, float]:
+    def _calculate_activity_ratios(self, participant_scores: dict) -> tuple[float, float, float]:
         """참여자의 FEAT/BUG/DOC 활동 비율을 계산"""
         total = participant_scores["total"]
         if total == 0:
@@ -494,7 +492,7 @@ class RepoAnalyzer:
         
         return feat_bug_ratio, doc_ratio, typo_ratio
 
-    def generate_chart(self, scores: Dict[str, Dict[str, float]], save_path: str, show_grade: bool = False) -> None:
+    def generate_chart(self, scores: dict[str, dict[str, float]], save_path: str, show_grade: bool = False) -> None:
 
       # Linux 환경에서 CJK 폰트 수동 설정
         # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
