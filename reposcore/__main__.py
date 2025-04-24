@@ -28,9 +28,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-# 깃허브 저장소 기본 URL
-GITHUB_BASE_URL = "https://github.com/"
-
 # 친절한 오류 메시지를 출력할 ArgumentParser 클래스
 class FriendlyArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
