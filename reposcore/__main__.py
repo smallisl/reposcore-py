@@ -4,11 +4,12 @@ import argparse
 import sys
 import os
 import requests
-from .analyzer import RepoAnalyzer
 from datetime import datetime
 import json
 import logging
-from .utils.github_utils import check_github_repo_exists
+
+from .github_utils import *
+from .analyzer import RepoAnalyzer
 
 # 포맷 상수
 FORMAT_TABLE = "table"
