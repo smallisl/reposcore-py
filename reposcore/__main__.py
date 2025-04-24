@@ -244,7 +244,7 @@ def main() -> None:
 
             # 3) 차트 이미지 저장
             if FORMAT_CHART in formats:
-                chart_filename = "chart_participation_grade.png" if args.grade else "chart_participation.png"
+                chart_filename = "chart_grade.png" if args.grade else "chart.png"
                 chart_path = os.path.join(repo_output_dir, chart_filename)
                 repo_aggregator.generate_chart(repo_scores, save_path=chart_path, show_grade=args.grade)
                 logging.info(f"[개별 저장소] 차트 이미지 저장 완료: {chart_path}")
@@ -287,7 +287,7 @@ def main() -> None:
 
         # 통합 차트
         if FORMAT_CHART in formats:
-            chart_filename = "chart_participation_grade.png" if args.grade else "chart_participation.png"
+            chart_filename = "chart_grade.png" if args.grade else "chart.png"
             chart_path = os.path.join(args.output, chart_filename)
             aggregator.generate_chart(scores, save_path=chart_path, show_grade=args.grade)
             logging.info(f"\n[통합] 차트 이미지 저장 완료: {chart_path}")
