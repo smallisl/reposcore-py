@@ -625,7 +625,12 @@ class RepoAnalyzer:
                 f'{score_text}\n{ratio_text}',
                 va='center',
                 fontsize=self.CHART_CONFIG['font_size'],
-                bbox=dict(facecolor='white', alpha=0.8, pad=self.CHART_CONFIG['text_padding'], edgecolor='none'),
+                bbox=dict(
+                    facecolor=theme['chart']['style']['background'],  # 수정: 다크/라이트 테마에 따라 배경색 적용
+                    alpha=0.8,
+                    pad=self.CHART_CONFIG['text_padding'],
+                    edgecolor='none'
+                ),
                 clip_on=False
             )
 
