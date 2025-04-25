@@ -203,7 +203,7 @@ class RepoAnalyzer:
             i_fb = i_f + i_b
 
             p_valid = p_fb + min(p_d, 3 * max(p_fb, 1))
-            i_valid = min(i_fb + i_d, 4 * p_valid)
+            i_valid = min(i_fb + i_d, 4 * max(p_valid, 1))
 
             p_fb_at = min(p_fb, p_valid)
             p_d_at = p_valid - p_fb_at
