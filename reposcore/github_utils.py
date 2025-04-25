@@ -12,14 +12,14 @@ def validate_repo_format(repo: str) -> bool:
         print("저장소 형식이 올바르지 않습니다. 'owner/repo' 형식으로 입력해주세요.")
         return False
 
-def validate_token(github_token: str) -> None:
-    headers = {}
-    if github_token:
-        headers["Authorization"] = f"token {github_token}"
-    response = requests.get("https://api.github.com/user", headers=headers)
-    if response.status_code != 200:
-        logging.error('❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.')
-        sys.exit(1)
+# def validate_token(github_token: str) -> None:
+#     headers = {}
+#     if github_token:
+#         headers["Authorization"] = f"token {github_token}"
+#     response = requests.get("https://api.github.com/user", headers=headers)
+#     if response.status_code != 200:
+#         logging.error('❌ 인증 실패: 잘못된 GitHub 토큰입니다. 토큰 값을 확인해 주세요.')
+#         sys.exit(1)
 
 def check_github_repo_exists(repo: str) -> bool:
     """
