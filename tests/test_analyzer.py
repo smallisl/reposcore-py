@@ -96,6 +96,15 @@ def test_example_calculate_scores():
             "i_bug": 0,
             "i_documentation": 3,
         },
+        "test_user11": {
+            "p_enhancement": 0,
+            "p_bug": 0,
+            "p_typo": 0, 
+            "p_documentation": 0,
+            "i_enhancement": 0,
+            "i_bug": 0,
+            "i_documentation": 1,
+        },
     }
 
     scores = analyzer.calculate_scores()
@@ -109,6 +118,7 @@ def test_example_calculate_scores():
     assert scores["test_user8"]['total'] == 26, "test_user8 결과값이 일치하지 않습니다."
     assert scores["test_user9"]['total'] == 22, "test_user9 결과값이 일치하지 않습니다."
     assert scores["test_user10"]['total'] == 25, "test_user10 결과값이 일치하지 않습니다."
+    assert scores["test_user11"]['total'] == 1, "test_user11 결과값이 일치하지 않습니다."
 
 def test_generate_table_creates_file():
     analyzer = RepoAnalyzer("dummy/repo")
