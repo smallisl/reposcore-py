@@ -312,7 +312,7 @@ class RepoAnalyzer:
             i_f, i_b, i_d, i_fb = self._extract_issue_counts(activities)
             
             # 유효 카운트 계산
-            p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, i_fb, i_d)
+             p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, p_t, i_fb, i_d)
             
             # 조정된 카운트 계산
             p_fb_at, p_d_at, i_fb_at, i_d_at = self._calculate_adjusted_counts(
