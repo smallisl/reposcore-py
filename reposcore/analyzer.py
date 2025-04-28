@@ -249,9 +249,9 @@ class RepoAnalyzer:
         i_fb = i_f + i_b
         return i_f, i_b, i_d, i_fb
 
-    def _calculate_valid_counts(self, p_fb: int, p_d: int, i_fb: int, i_d: int) -> tuple[int, int]:
+    def _calculate_valid_counts(self, p_fb: int, p_d: int, p_t: int, i_fb: int, i_d: int) -> tuple[int, int]:
         """유효 카운트 계산"""
-        p_valid = p_fb + min(p_d, 3 * max(p_fb, 1))
+        p_valid = p_fb + min(p_d + p_t, 3 * max(p_fb, 1))
         i_valid = min(i_fb + i_d, 4 * p_valid)
         return p_valid, i_valid
 
@@ -262,6 +262,7 @@ class RepoAnalyzer:
         i_fb_at = min(i_fb, i_valid)
         i_d_at = i_valid - i_fb_at
         return p_fb_at, p_d_at, i_fb_at, i_d_at
+
 
     def _calculate_total_score(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int) -> int:
         """총점 계산"""
@@ -311,7 +312,7 @@ class RepoAnalyzer:
             i_f, i_b, i_d, i_fb = self._extract_issue_counts(activities)
             
             # 유효 카운트 계산
-            p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, i_fb, i_d)
+            p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, p_t, i_fb, i_d)
             
             # 조정된 카운트 계산
             p_fb_at, p_d_at, i_fb_at, i_d_at = self._calculate_adjusted_counts(
