@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 import json
-import matplotlib.font_manager as fm
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import pandas as pd
 import requests
-from prettytable import PrettyTable
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -52,26 +47,6 @@ class RepoAnalyzer:
         'doc_is': 1
     }
     
-    # 차트 설정
-    CHART_CONFIG = {
-        'height_per_participant': 0.4,  # 참여자당 차트 높이
-        'min_height': 3.0,             # 최소 차트 높이
-        'bar_height': 0.5,             # 막대 높이
-        'figure_width': 12,            # 차트 너비 (텍스트 잘림 방지 위해 증가)
-        'font_size': 9,                # 폰트 크기
-        'text_padding': 0.1            # 텍스트 배경 상자 패딩
-    }
-    
-    # 등급 기준
-    GRADE_THRESHOLDS = {
-        90: 'A',
-        80: 'B',
-        70: 'C',
-        60: 'D',
-        50: 'E',
-        0: 'F'
-    }
-
     # 사용자 제외 목록
     EXCLUDED_USERS = {"kyahnu", "kyagrd"}
 
@@ -250,9 +225,9 @@ class RepoAnalyzer:
         return i_f, i_b, i_d, i_fb
 
     def _calculate_valid_counts(self, p_fb: int, p_d: int, p_t: int, i_fb: int, i_d: int) -> tuple[int, int]:
-        """유효 카운트 계산"""
-        p_valid = p_fb + min(p_d + p_t, 3 * max(p_fb, 1))
-        i_valid = min(i_fb + i_d, 4 * p_valid)
+        """유효한 카운트 계산"""
+        p_valid = p_fb + min(p_d + p_t, 2 * max(p_fb, 1))
+        i_valid = min(i_fb + i_d, 3 * p_valid)
         return p_valid, i_valid
 
     def _calculate_adjusted_counts(self, p_fb: int, p_valid: int, i_fb: int, i_valid: int) -> tuple[int, int, int, int]:
@@ -262,7 +237,6 @@ class RepoAnalyzer:
         i_fb_at = min(i_fb, i_valid)
         i_d_at = i_valid - i_fb_at
         return p_fb_at, p_d_at, i_fb_at, i_d_at
-
 
     def _calculate_total_score(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int) -> int:
         """총점 계산"""
@@ -325,7 +299,11 @@ class RepoAnalyzer:
             scores[participant] = self._create_score_dict(p_fb_at, p_d_at, p_t, i_fb_at, i_d_at, total)
             total_score_sum += total
 
-        return self._finalize_scores(scores, total_score_sum, user_info)
+        # 사용자 정보 매핑 (제공된 경우)
+        if user_info:
+            scores = {user_info[k]: scores.pop(k) for k in list(scores.keys()) if user_info.get(k) and scores.get(k)}
+
+        return dict(sorted(scores.items(), key=lambda x: x[1]["total"], reverse=True))
 
     def calculate_averages(self, scores: dict[str, dict[str, float]]) -> dict[str, float]:
         """점수 딕셔너리에서 각 카테고리별 평균을 계산합니다."""
@@ -352,320 +330,16 @@ class RepoAnalyzer:
 
         return averages
 
-    def generate_table(self, scores: dict[str, dict[str, float]], save_path) -> None:
-        df = pd.DataFrame.from_dict(scores, orient="index")
-        df.reset_index(inplace=True)
-        df.rename(columns={"index": "name"}, inplace=True)
-
-        dir_path = os.path.dirname(save_path)
-        if dir_path and not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-
-        df.to_csv(save_path, index=False, encoding='utf-8')
-        logging.info(f"📊 CSV 결과 저장 완료: {save_path}")
-        
-    def generate_count_csv(self, scores: dict, save_path: str = None) -> None:
-        """
-        점수 딕셔너리를 기반으로 각 활동 유형별 개수를 count.csv 파일로 저장합니다.
-        
-        Args:
-            scores: 사용자별 점수 딕셔너리
-            save_path: 저장할 파일 경로 (지정하지 않으면 현재 디렉토리에 count.csv로 저장)
-        """
-        dir_path = os.path.dirname(save_path) if save_path else '.'
-        if dir_path and not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-            
-        count_csv_path = os.path.join(dir_path, "count.csv")
-        with open(count_csv_path, 'w', encoding='utf-8') as f:
-            f.write("name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue\n")
-            for name, score in scores.items():
-                pr_fb = int(score["feat/bug PR"] / self.score["feat_bug_pr"])
-                pr_doc = int(score["document PR"] / self.score["doc_pr"])
-                pr_typo = int(score["typo PR"] / self.score["typo_pr"])
-                is_fb = int(score["feat/bug issue"] / self.score["feat_bug_is"])
-                is_doc = int(score["document issue"] / self.score["doc_is"])
-                f.write(f"{name},{pr_fb},{pr_doc},{pr_typo},{is_fb},{is_doc}\n")
-        logging.info(f"📄 활동 개수 CSV 저장 완료: {count_csv_path}")
-        return count_csv_path
-
-    def generate_text(self, scores: dict[str, dict[str, float]], save_path) -> None:
-        # 기존 table.txt 생성
-        table = PrettyTable()
-        table.field_names = ["name", "feat/bug PR", "document PR", "typo PR","feat/bug issue", "document issue", "total", "rate"]
-
-        # 평균 계산
-        averages = self.calculate_averages(scores)
-
-        # 평균 행 추가
-        table.add_row([
-            "avg",
-            round(averages["feat/bug PR"], 1),
-            round(averages["document PR"], 1),
-            round(averages["typo PR"], 1),
-            round(averages["feat/bug issue"], 1),
-            round(averages["document issue"], 1),
-            round(averages["total"], 1),
-            f'{averages["rate"]:.1f}%'
-        ])
-
-        for name, score in scores.items():
-            table.add_row([
-                name,
-                score["feat/bug PR"],
-                score["document PR"],
-                score["typo PR"],
-                score['feat/bug issue'],
-                score['document issue'],
-                score['total'],
-                f'{score["rate"]:.1f}%'
-            ])
-
-        dir_path = os.path.dirname(save_path)
-        if dir_path and not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-
-        # 생성 날짜 및 시간 추가 (텍스트 파일 상단)
-        current_time = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-        with open(save_path, 'w', encoding='utf-8') as txt_file:
-            txt_file.write(f"Generated on: {current_time}\n\n")
-            txt_file.write(str(table))
-        logging.info(f"📝 텍스트 결과 저장 완료: {save_path}")
-
-        # score.txt 생성 (이모지 포함, grade 컬럼 제외)
-        score_table = PrettyTable()
-        score_table.field_names = ["name", "feat/bug PR", "document PR", "typo PR", "feat/bug issue", "document issue", "total", "rate"]
-
-        # 평균 행 추가
-        score_table.add_row([
-            "avg",
-            round(averages["feat/bug PR"], 1),
-            round(averages["document PR"], 1),
-            round(averages["typo PR"], 1),
-            round(averages["feat/bug issue"], 1),
-            round(averages["document issue"], 1),
-            round(averages["total"], 1),
-            f'{averages["rate"]:.1f}%'
-        ])
-
-        for name, score in scores.items():
-            score_table.add_row([
-                f"{get_emoji(score['total'])} {name}",
-                score["feat/bug PR"],
-                score["document PR"],
-                score["typo PR"],
-                score['feat/bug issue'],
-                score['document issue'],
-                score['total'],
-                f'{score["rate"]:.1f}%'
-            ])
-
-        score_path = os.path.join(dir_path or '.', "score.txt")
-        with open(score_path, 'w', encoding='utf-8') as score_file:
-            score_file.write(f"Generated on: {current_time}\n\n")
-            score_file.write(str(score_table))
-        logging.info(f"📝 점수 텍스트 결과 저장 완료: {score_path}")
-
-    def _calculate_activity_ratios(self, participant_scores: dict) -> tuple[float, float, float]:
-        """참여자의 FEAT/BUG/DOC 활동 비율을 계산"""
-        total = participant_scores["total"]
-        if total == 0:
-            return 0, 0, 0
-            
-        feat_bug_score = (
-            participant_scores["feat/bug PR"] + 
-            participant_scores["feat/bug issue"]
-        )
-        doc_score = (
-            participant_scores["document PR"] + 
-            participant_scores["document issue"]
-        )
-        typo_score = participant_scores["typo PR"]
-        
-        feat_bug_ratio = (feat_bug_score / total) * 100
-        doc_ratio = (doc_score / total) * 100
-        typo_ratio = (typo_score / total) * 100
-        
-        return feat_bug_ratio, doc_ratio, typo_ratio
-
-    def generate_chart(self, scores: dict[str, dict[str, float]], save_path: str, show_grade: bool = False) -> None:
-
-      # Linux 환경에서 CJK 폰트 수동 설정
-        # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
-        for pref_name in ['Noto Sans CJK', 'NanumGothic', 'Baekmuk Dotum']:
-            found_ttf = next((ttf for ttf in fm.fontManager.ttflist if pref_name in ttf.name), None)
-
-            if found_ttf:
-                plt.rcParams['font.family'] = found_ttf.name
-                break
-        theme = self.theme_manager.themes[self.theme_manager.current_theme]  # 테마 가져오기
-
-        plt.rcParams['figure.facecolor'] = theme['chart']['style']['background']
-        plt.rcParams['axes.facecolor'] = theme['chart']['style']['background']
-        plt.rcParams['axes.edgecolor'] = theme['chart']['style']['text']
-        plt.rcParams['axes.labelcolor'] = theme['chart']['style']['text']
-        plt.rcParams['xtick.color'] = theme['chart']['style']['text']
-        plt.rcParams['ytick.color'] = theme['chart']['style']['text']
-        plt.rcParams['grid.color'] = theme['chart']['style']['grid']
-        plt.rcParams['text.color'] = theme['chart']['style']['text']
-
-        # 점수 정렬
-        sorted_scores = sorted(
-            [(key, value.get('total', 0)) for (key, value) in scores.items()],
-            key=lambda item: item[1],
-            reverse=True
-        )
-        participants, scores_sorted = zip(*sorted_scores) if sorted_scores else ([], [])
-        num_participants = len(participants)
-        
-        # 클래스 상수 사용
-        height = max(
-            self.CHART_CONFIG['min_height'],
-            num_participants * self.CHART_CONFIG['height_per_participant']
-        )
-
-        # 등수 계산 (동점 처리)
-        ranks = []
-        current_rank = 1
-        prev_score = None
-        for i, score in enumerate(scores_sorted):
-            if score != prev_score:
-                ranks.append(current_rank)
-                prev_score = score
-            else:
-                ranks.append(ranks[-1])
-            current_rank += 1
-
-        # 사용자 이름에 등수 추가
-        ranked_participants = []
-        for i, participant in enumerate(participants):
-            rank_suffix = get_ordinal_suffix(ranks[i])
-            ranked_participants.append(f"{participant} ({rank_suffix})")
-
-        plt.figure(figsize=(self.CHART_CONFIG['figure_width'], height))
-        bars = plt.barh(ranked_participants, scores_sorted, height=self.CHART_CONFIG['bar_height'])
-
-        # 색상 매핑 (기본 colormap 또는 등급별 색상)
-        if show_grade:
-            def get_grade_color(score):
-                if score >= 90:
-                    return theme['colors']['grade_colors']['A']
-                elif score >= 80:
-                    return theme['colors']['grade_colors']['B']
-                elif score >= 70:
-                    return theme['colors']['grade_colors']['C']
-                elif score >= 60:
-                    return theme['colors']['grade_colors']['D']
-                elif score >= 50:
-                    return theme['colors']['grade_colors']['E']
-                else:
-                    return theme['colors']['grade_colors']['F']
-
-            for bar, score in zip(bars, scores_sorted):
-                bar.set_color(get_grade_color(score))
-        else:
-            colormap = plt.colormaps[theme['chart']['style']['colormap']]
-            norm = plt.Normalize(min(scores_sorted or [0]), max(scores_sorted or [1]))
-            for bar, score in zip(bars, scores_sorted):
-                bar.set_color(colormap(norm(score)))
-
-        plt.xlabel('Participation Score')
-        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("Generated at %Y-%m-%d %H:%M:%S")
-        plt.title(f'Repository Participation Scores\n{timestamp}')
-        plt.suptitle(f"Total Participants: {num_participants}", fontsize=10, x=0.98, ha='right')
-        plt.gca().invert_yaxis()
-
-        # 동적 레이블 오프셋과 여백 계산 (텍스트 잘림 방지)
-        max_score = max(scores_sorted or [100])  # 최대 점수 (최소 100으로 기본값)
-        plt.xlim(0, max_score + 30)  # 가로축 범위: 최대 점수 + 20
-        dynamic_offset = 0.05 * max_score  # 점수 비례 오프셋
-
-        # 점수와 활동 비율 표시
-        for i, (bar, score) in enumerate(zip(bars, scores_sorted)):
-            participant = participants[i]
-            feat_bug_ratio, doc_ratio, typo_ratio = self._calculate_activity_ratios(scores[participant])
-            
-            grade = ''
-            if show_grade:
-                # 상수 사용
-                grade_assigned = 'F'
-                for threshold, grade_letter in sorted(self.GRADE_THRESHOLDS.items(), reverse=True):
-                    if score >= threshold:
-                        grade_assigned = grade_letter
-                        break
-                grade = f" ({grade_assigned})"
-
-            # 점수와 등급만 표시 (순위는 이름 앞에 표시되므로 제거)
-            score_text = f'{int(score)}{grade}'
-            
-            # 활동 비율 표시 (앞글자만 사용)
-            ratio_text = f'F/B: {feat_bug_ratio:.1f}% D: {doc_ratio:.1f}% T: {typo_ratio:.1f}%'
-            
-            # 텍스트 잘림 방지: 배경 상자 추가, 테두리 제거, 캔버스 밖 표시 허용
-            plt.text(
-                bar.get_width() + dynamic_offset,
-                bar.get_y() + bar.get_height() / 2,
-                f'{score_text}\n{ratio_text}',
-                va='center',
-                fontsize=self.CHART_CONFIG['font_size'],
-                bbox=dict(
-                    facecolor=theme['chart']['style']['background'],  # 수정: 다크/라이트 테마에 따라 배경색 적용
-                    alpha=0.8,
-                    pad=self.CHART_CONFIG['text_padding'],
-                    edgecolor='none'
-                ),
-                clip_on=False
-            )
-
-        # 디렉토리가 없으면 생성
-        save_dir = os.path.dirname(save_path)
-        if save_dir and not os.path.exists(save_dir):
-            os.makedirs(save_dir, exist_ok=True)
-
-        plt.subplots_adjust(left=0.2, right=0.98, top=0.93, bottom=0.05)
-        plt.savefig(save_path)
-        logging.info(f"📈 차트 저장 완료: {save_path}")
-        plt.close()
-
     def is_cache_update_required(self, cache_path: str) -> bool:
-        """캐시 데이터 업데이트 필요 여부를 확인합니다.
+        """캐시 업데이트 필요 여부 확인"""
+        if not os.path.exists(cache_path):
+            return True
 
-            지정된 캐시 파일의 존재 여부 및 최종 수정 시간을 확인하여
-            캐시를 업데이트해야 하는지 여부를 결정합니다.
-
-            Args:
-                cache_path (str): 확인할 캐시 파일의 경로입니다.
-
-            Returns:
-                bool: 캐시 업데이트가 필요한 경우 True, 그렇지 않은 경우 False를 반환합니다.
-                      캐시 파일이 존재하지 않거나, 마지막 수정 시간이 특정 조건(예: 만료 시간 초과)을
-                      만족하는 경우 True를 반환할 수 있습니다.
-        """
-        with open(cache_path,'r') as f:
-            url = f"https://api.github.com/repos/{self.repo_path}/issues"
-
-            response = retry_request(self.SESSION,
-                                     url,
-                                     max_retries=3,
-                                     params={
-                                         'state': 'all',
-                                         'per_page': 1,
-                                     })
-            if self._handle_api_error(response.status_code):
-                return False
-
-            response_json = response.json()[0]
-
-            if 'created_at' not in response_json:
-                logging.warning(f"⚠️ 요청 분석 실패")
-                return False
-
-            server_create_datetime = datetime.fromisoformat(response_json['created_at'])
-
-            stat_json = json.load(f)
-            if 'update_time' not in stat_json:
-                return False
-
-            cache_create_datetime = datetime.fromtimestamp(stat_json['update_time'], tz=timezone.utc)
-
-            return cache_create_datetime < server_create_datetime
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+                cached_timestamp = cache_data.get('timestamp', 0)
+                current_timestamp = int(datetime.now(timezone.utc).timestamp())
+                return current_timestamp - cached_timestamp > 3600  # 1시간
+        except (json.JSONDecodeError, KeyError):
+            return True
