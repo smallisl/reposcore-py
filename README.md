@@ -26,7 +26,7 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
-[2025-04-30 11:25:53] [INFO] generated new fontManager
+[2025-04-30 16:28:07] [INFO] generated new fontManager
 usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
@@ -84,6 +84,8 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 
 ## [테스트 가이드](docs/test-guide.md)
 
+## [디버깅 및 로깅 가이드](docs/debug_guide.md)
+
 ## [GitHub API 가이드](docs/github_api_guide.md)
 
 ## [토큰 생성 방법](docs/github-token-guide.md)
@@ -97,4 +99,3 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 ## [fork 저장소를 원본 저장소와 sync 하는 방법](docs/fork_sync_guide.md)
 
 ## [파이썬 플러그인 설치 가이드](docs/python_plugin_guide.md)
-
