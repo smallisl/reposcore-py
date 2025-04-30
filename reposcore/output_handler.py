@@ -120,7 +120,7 @@ class OutputHandler:
         return pr_ratio, issue_ratio, code_ratio
 
     def generate_chart(self, scores: dict[str, dict[str, float]], save_path: str, show_grade: bool = False) -> None:
-        """결과를 차트로 출력"""
+        """결과를 차트로 출력: PR과 이슈를 단일 스택형 막대 그래프로 통합"""
         # Linux 환경에서 CJK 폰트 수동 설정
         # OSS 한글 폰트인 본고딕, 나눔고딕, 백묵 중 순서대로 하나를 선택
         font_paths = [
@@ -154,14 +154,17 @@ class OutputHandler:
         y_pos = range(len(participants))
         bar_height = self.CHART_CONFIG['bar_height']
 
-        # 막대 그리기
-        pr_bars = ax.barh([y - bar_height/2 for y in y_pos], pr_scores, 
-                         height=bar_height, label='PR', color='skyblue')
-        issue_bars = ax.barh([y + bar_height/2 for y in y_pos], issue_scores, 
-                            height=bar_height, label='이슈', color='lightgreen')
+        # 테마에서 색상 가져오기 (기본값 유지)
+        theme_colors = self.theme_manager.themes[self.theme_manager.current_theme]
+        pr_color = theme_colors.get("pr_color", "skyblue")  # 기본: skyblue
+        issue_color = theme_colors.get("issue_color", "lightgreen")  # 기본: lightgreen
+
+        # 단일 스택형 막대 그리기
+        ax.barh(y_pos, pr_scores, height=bar_height, label='PR', color=pr_color, edgecolor='none')
+        ax.barh(y_pos, issue_scores, left=pr_scores, height=bar_height, label='Issue', color=issue_color, edgecolor='none')
 
         # 점수 표시
-        for i, (pr, issue, total) in enumerate(zip(pr_scores, issue_scores, total_scores)):
+        for i, total in enumerate(total_scores):
             if show_grade:
                 grade = self._calculate_grade(total)
                 ax.text(total + 1, i, f'{total:.1f} ({grade})', 
@@ -173,12 +176,16 @@ class OutputHandler:
         # 축 설정
         ax.set_yticks(y_pos)
         ax.set_yticklabels(participants)
-        ax.set_xlabel('점수')
-        ax.set_title('참여자별 활동 점수')
+        ax.set_xlabel('Score')
+        ax.set_title('Repository Contribution Scores')
         ax.invert_yaxis()
 
-        # 범례 추가
-        ax.legend()
+        # 범례 추가 (테두리 없음)
+        ax.legend(loc='upper right', frameon=False)
+
+        # 가로축 여백 조정 (텍스트 잘림 방지)
+        max_score = max(total_scores) if total_scores else 100
+        ax.set_xlim(0, max_score + max_score * self.CHART_CONFIG['text_padding'])
 
         # 여백 조정
         plt.tight_layout()
