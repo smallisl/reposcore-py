@@ -73,3 +73,6 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 ## [차트 생성시 한글 폰트 깨짐 이슈 해결 가이드](docs/chart-font-guide.md)
 
 ## [fork 저장소를 원본 저장소와 sync 하는 방법](docs/fork_sync_guide.md)
+
+## [파이썬 플러그인 설치 가이드](docs/python_plugin_guide.md)
+
