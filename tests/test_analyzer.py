@@ -110,16 +110,16 @@ def test_example_calculate_scores():
 
     scores = analyzer.calculate_scores()
     assert scores["test_user1"]['total'] == 26, "test_user1 결과값이 일치하지 않습니다."
-    assert scores["test_user2"]['total'] == 17, "test_user2 결과값이 일치하지 않습니다."
-    assert scores["test_user3"]['total'] == 80, "test_user3 결과값이 일치하지 않습니다."
+    assert scores["test_user2"]['total'] == 16, "test_user2 결과값이 일치하지 않습니다."
+    assert scores["test_user3"]['total'] == 79, "test_user3 결과값이 일치하지 않습니다."
     assert scores["test_user4"]['total'] == 9, "test_user4 결과값이 일치하지 않습니다."
     assert scores["test_user5"]['total'] == 7, "test_user5 결과값이 일치하지 않습니다."
-    assert scores["test_user6"]['total'] == 1, "test_user6 결과값이 일치하지 않습니다."
-    assert scores["test_user7"]['total'] == 73, "test_user7 결과값이 일치하지 않습니다."
-    assert scores["test_user8"]['total'] == 26, "test_user8 결과값이 일치하지 않습니다."
+    assert scores["test_user6"]['total'] == 9, "test_user6 결과값이 일치하지 않습니다."
+    assert scores["test_user7"]['total'] == 72, "test_user7 결과값이 일치하지 않습니다."
+    assert scores["test_user8"]['total'] == 25, "test_user8 결과값이 일치하지 않습니다."
     assert scores["test_user9"]['total'] == 22, "test_user9 결과값이 일치하지 않습니다."
     assert scores["test_user10"]['total'] == 25, "test_user10 결과값이 일치하지 않습니다."
-    assert scores["test_user11"]['total'] == 1, "test_user11 결과값이 일치하지 않습니다."
+    assert scores["test_user11"]['total'] == 0, "test_user11 결과값이 일치하지 않습니다."
 
 def test_generate_table_creates_file():
     output_handler = OutputHandler()

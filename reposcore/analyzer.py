@@ -226,34 +226,35 @@ class RepoAnalyzer:
 
     def _calculate_valid_counts(self, p_fb: int, p_d: int, p_t: int, i_fb: int, i_d: int) -> tuple[int, int]:
         """유효한 카운트 계산"""
-        p_valid = p_fb + min(p_d + p_t, 2 * max(p_fb, 1))
-        i_valid = min(i_fb + i_d, 3 * p_valid)
+        p_valid = p_fb + min(p_d + p_t, 3 * max(p_fb, 1))
+        i_valid = min(i_fb + i_d, 4 * p_valid)
         return p_valid, i_valid
 
-    def _calculate_adjusted_counts(self, p_fb: int, p_valid: int, i_fb: int, i_valid: int) -> tuple[int, int, int, int]:
+    def _calculate_adjusted_counts(self, p_fb: int, p_d: int, p_valid: int, i_fb: int, i_valid: int) -> tuple[int, int, int, int, int]:
         """조정된 카운트 계산"""
         p_fb_at = min(p_fb, p_valid)
-        p_d_at = p_valid - p_fb_at
+        p_d_at = min(p_d, p_valid - p_fb_at)
+        p_t_at = p_valid - p_fb_at - p_d_at
         i_fb_at = min(i_fb, i_valid)
         i_d_at = i_valid - i_fb_at
-        return p_fb_at, p_d_at, i_fb_at, i_d_at
+        return p_fb_at, p_d_at, p_t_at, i_fb_at, i_d_at
 
-    def _calculate_total_score(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int) -> int:
+    def _calculate_total_score(self, p_fb_at: int, p_d_at: int, p_t_at: int, i_fb_at: int, i_d_at: int) -> int:
         """총점 계산"""
         return (
             self.score['feat_bug_pr'] * p_fb_at +
             self.score['doc_pr'] * p_d_at +
-            self.score['typo_pr'] * p_t +
+            self.score['typo_pr'] * p_t_at +
             self.score['feat_bug_is'] * i_fb_at +
             self.score['doc_is'] * i_d_at
         )
 
-    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t: int, i_fb_at: int, i_d_at: int, total: int) -> dict[str, float]:
+    def _create_score_dict(self, p_fb_at: int, p_d_at: int, p_t_at: int, i_fb_at: int, i_d_at: int, total: int) -> dict[str, float]:
         """점수 딕셔너리 생성"""
         return {
             "feat/bug PR": self.score['feat_bug_pr'] * p_fb_at,
             "document PR": self.score['doc_pr'] * p_d_at,
-            "typo PR": self.score['typo_pr'] * p_t,
+            "typo PR": self.score['typo_pr'] * p_t_at,
             "feat/bug issue": self.score['feat_bug_is'] * i_fb_at,
             "document issue": self.score['doc_is'] * i_d_at,
             "total": total
@@ -289,14 +290,14 @@ class RepoAnalyzer:
             p_valid, i_valid = self._calculate_valid_counts(p_fb, p_d, p_t, i_fb, i_d)
             
             # 조정된 카운트 계산
-            p_fb_at, p_d_at, i_fb_at, i_d_at = self._calculate_adjusted_counts(
-                p_fb, p_valid, i_fb, i_valid
+            p_fb_at, p_d_at, p_t_at, i_fb_at, i_d_at = self._calculate_adjusted_counts(
+                p_fb, p_d, p_valid, i_fb, i_valid
             )
             
             # 총점 계산
-            total = self._calculate_total_score(p_fb_at, p_d_at, p_t, i_fb_at, i_d_at)
+            total = self._calculate_total_score(p_fb_at, p_d_at, p_t_at, i_fb_at, i_d_at)
             
-            scores[participant] = self._create_score_dict(p_fb_at, p_d_at, p_t, i_fb_at, i_d_at, total)
+            scores[participant] = self._create_score_dict(p_fb_at, p_d_at, p_t_at, i_fb_at, i_d_at, total)
             total_score_sum += total
 
         # 사용자 정보 매핑 (제공된 경우)
