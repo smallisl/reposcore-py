@@ -31,7 +31,16 @@ update-fonts: requirements
 	$(PYTHON) -c "import shutil; import matplotlib; shutil.rmtree(matplotlib.get_cachedir())"
 
 install-fonts:
-	@echo "Detected distribution: $(DISTRO)"
+	@echo "🔍 Detecting system..."
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		echo "🍎 macOS detected. Installing NanumGothic via Homebrew..."; \
+		brew tap homebrew/cask-fonts && brew install --cask font-nanum-gothic; \
+	elif [ -f /etc/debian_version ]; then \
+		echo "🐧 Debian/Ubuntu detected. Installing fonts-nanum..."; \
+		sudo apt update && sudo apt install -y fonts-nanum; \
+	else \
+		echo "⚠️ Unsupported OS. Please install a Korean font (NanumGothic) manually."; \
+	fi
 
 ifneq (,$(filter $(DISTRO),Debian Ubuntu))
 	@echo "Installing Noto Sans CJK fonts for Debian..."
