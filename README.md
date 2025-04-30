@@ -26,6 +26,7 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
+[2025-04-30 11:25:53] [INFO] generated new fontManager
 usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
@@ -92,3 +93,5 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 ## [README.md 자동 생성 및 최신 상태 유지 가이드](docs/readme_version_check_guide.md)
 
 ## [차트 생성시 한글 폰트 깨짐 이슈 해결 가이드](docs/chart-font-guide.md)
+
+## [파이썬 플러그인 설치 가이드](docs/python_plugin_guide.md)
