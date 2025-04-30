@@ -45,5 +45,5 @@ gh codespace rebuild
 
 ### 주의사항
 
-- Python `datetime.now()`는 OS의 기본 시간대를 따르�므로 위 설정이 되어 있어야 한국 시간으로 로그가 표시됩니다.
+- Python `datetime.now()`는 OS의 기본 시간대를 따르므로 위 설정이 되어 있어야 한국 시간으로 로그가 표시됩니다.
 - 시스템 시간 설정이 불가한 환경이라면 `datetime.now(tz=...)` 사용을 고려할 수 있습니다.
