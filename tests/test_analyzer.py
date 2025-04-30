@@ -1,6 +1,7 @@
 import os
 import tempfile
 from reposcore.analyzer import RepoAnalyzer
+from reposcore.output_handler import OutputHandler
 
 
 def test_example_calculate_scores():
@@ -121,7 +122,7 @@ def test_example_calculate_scores():
     assert scores["test_user11"]['total'] == 1, "test_user11 결과값이 일치하지 않습니다."
 
 def test_generate_table_creates_file():
-    analyzer = RepoAnalyzer("dummy/repo")
+    output_handler = OutputHandler()
     scores = {
         "alice": {
             "feat/bug PR": 9,
@@ -130,7 +131,7 @@ def test_generate_table_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 25,
-            "rate": 100
+            "grade": "A"
         },
         "bob": {
             "feat/bug PR": 9,
@@ -139,20 +140,17 @@ def test_generate_table_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 24,
-            "rate": 96
+            "grade": "A"
         }
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, "test_table.csv")
-        analyzer.generate_table(scores, save_path=filepath)
+        output_handler.generate_table(scores, save_path=filepath)
         assert os.path.isfile(filepath), "CSV 파일이 생성되지 않았습니다."
-        # count.csv는 더 이상 generate_table에서 생성하지 않음
-        count_path = os.path.join(os.path.dirname(filepath), "count.csv")
-        assert not os.path.isfile(count_path), "count.csv 파일이 generate_table에서 생성되었습니다."
 
 def test_generate_count_csv_creates_file():
-    analyzer = RepoAnalyzer("dummy/repo")
+    output_handler = OutputHandler()
     scores = {
         "alice": {
             "feat/bug PR": 9,
@@ -161,7 +159,7 @@ def test_generate_count_csv_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 25,
-            "rate": 100
+            "grade": "A"
         },
         "bob": {
             "feat/bug PR": 9,
@@ -170,24 +168,24 @@ def test_generate_count_csv_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 24,
-            "rate": 96
+            "grade": "A"
         }
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, "test_scores.csv")
-        count_path = analyzer.generate_count_csv(scores, save_path=filepath)
-        assert os.path.isfile(count_path), "count.csv 파일이 생성되지 않았습니다."
+        output_handler.generate_count_csv(scores, save_path=filepath)
+        assert os.path.isfile(filepath), "count.csv 파일이 생성되지 않았습니다."
         
         # 생성된 파일 내용 확인
-        with open(count_path, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
-            assert "name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue" in content
-            assert "alice,3,3,1,3,3" in content
-            assert "bob,3,3,0,3,3" in content
+            assert "name,feat/bug PR,document PR,typo PR,feat/bug issue,document issue,total" in content
+            assert "alice,9,6,1,6,3,25" in content
+            assert "bob,9,6,0,6,3,24" in content
 
 def test_generate_chart_creates_file():
-    analyzer = RepoAnalyzer("dummy/repo")
+    output_handler = OutputHandler()
     scores = {
         "alice": {
             "feat/bug PR": 9,
@@ -196,7 +194,7 @@ def test_generate_chart_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 24,
-            "rate": 100
+            "grade": "A"
         },
         "bob": {
             "feat/bug PR": 9,
@@ -205,11 +203,11 @@ def test_generate_chart_creates_file():
             "feat/bug issue": 6,
             "document issue": 3,
             "total": 24,
-            "rate": 100
+            "grade": "A"
         }
     }
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filepath = os.path.join(tmpdir, "test_chart.png")
-        analyzer.generate_chart(scores, save_path=filepath)
+        output_handler.generate_chart(scores, save_path=filepath)
         assert os.path.isfile(filepath), "차트 이미지 파일이 생성되지 않았습니다."
