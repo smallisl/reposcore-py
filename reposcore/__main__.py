@@ -112,6 +112,11 @@ def parse_arguments() -> argparse.Namespace:
     action="store_true",
     help="자세한 로그를 출력합니다."
     )
+    parser.add_argument(
+    "--user",
+    type=str,
+    help="특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)"
+    )
     return parser.parse_args()
 
 def merge_participants(
@@ -224,6 +229,18 @@ def main() -> None:
             # 스코어 계산
             repo_scores = analyzer.calculate_scores(user_info)
 
+            # --user 옵션이 지정된 경우 사용자 점수 및 등수 출력
+            user_lookup_name = user_info.get(args.user, args.user) if args.user and user_info else args.user
+            if args.user and user_lookup_name in repo_scores:
+                sorted_users = list(repo_scores.keys())
+                user_rank = sorted_users.index(user_lookup_name) + 1
+                user_score = repo_scores[user_lookup_name]["total"]
+                log(f"[INFO] 사용자: {user_lookup_name}", force=True)
+                log(f"[INFO] 총점: {user_score:.2f}점", force=True)
+                log(f"[INFO] 등수: {user_rank}등 (전체 {len(sorted_users)}명 중)", force=True)
+            elif args.user:
+                log(f"[INFO] 사용자 '{args.user}'의 점수가 계산된 결과에 없습니다.", force=True)
+
             # 출력 형식
             formats = set(args.format)
             if FORMAT_ALL in formats:
@@ -271,6 +288,18 @@ def main() -> None:
         
         # 통합 점수 계산
         overall_scores = overall_analyzer.calculate_scores(user_info)
+
+        # --user 옵션이 지정된 경우 통합 점수에서 출력
+        user_lookup_name = user_info.get(args.user, args.user) if args.user and user_info else args.user
+        if args.user and user_lookup_name in overall_scores:
+            sorted_users = list(overall_scores.keys())
+            user_rank = sorted_users.index(user_lookup_name) + 1
+            user_score = overall_scores[user_lookup_name]["total"]
+            log(f"[INFO] 사용자: {user_lookup_name}", force=True)
+            log(f"[INFO] 총점: {user_score:.2f}점", force=True)
+            log(f"[INFO] 등수: {user_rank}등 (전체 {len(sorted_users)}명 중)", force=True)
+        elif args.user:
+            log(f"[INFO] 사용자 '{args.user}'의 점수가 통합 분석 결과에 없습니다.", force=True)
         
         # 통합 결과 저장
         overall_output_dir = os.path.join(args.output, "overall")
