@@ -62,6 +62,8 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 
 ## [테스트 가이드](docs/test-guide.md)
 
+## [디버깅 및 로깅 가이드](docs/debug_guide.md)
+
 ## [GitHub API 가이드](docs/github_api_guide.md)
 
 ## [토큰 생성 방법](docs/github-token-guide.md)
