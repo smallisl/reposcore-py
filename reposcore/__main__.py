@@ -12,6 +12,7 @@ from .common_utils import *
 from .github_utils import *
 from .analyzer import RepoAnalyzer
 from .output_handler import OutputHandler
+from . import common_utils
 
 # 포맷 상수
 FORMAT_TABLE = "table"
@@ -106,6 +107,11 @@ def parse_arguments() -> argparse.Namespace:
         default="default",
         help="테마 선택 (default 또는 dark)"
     )
+    parser.add_argument(
+    "-v", "--verbose",
+    action="store_true",
+    help="자세한 로그를 출력합니다."
+    )
     return parser.parse_args()
 
 def merge_participants(
@@ -126,6 +132,7 @@ def merge_participants(
 def main() -> None:
     """Main execution function"""
     args = parse_arguments()
+    common_utils.is_verbose = args.verbose
     github_token = args.token
     if not args.token:
         github_token = os.getenv('GITHUB_TOKEN')
@@ -171,13 +178,13 @@ def main() -> None:
             logging.warning(f"입력한 저장소 '{repo}'가 깃허브에 존재하지 않을 수 있음.")
             sys.exit(1)
 
-    logging.info(f"저장소 분석 시작: {', '.join(final_repositories)}")
+    log(f"저장소 분석 시작: {', '.join(final_repositories)}", force=True)
 
     overall_participants = {}
     
     #저장소별로 분석 후 '개별 결과'도 저장하기
     for repo in final_repositories:
-        logging.info(f"분석 시작: {repo}")
+        log(f"분석 시작: {repo}", force=True)
 
         analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
         output_handler = OutputHandler(theme=args.theme)
@@ -191,16 +198,16 @@ def main() -> None:
         cache_update_required = os.path.exists(cache_path) and analyzer.is_cache_update_required(cache_path)
 
         if args.use_cache and os.path.exists(cache_path) and not cache_update_required:
-            logging.info(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.")
+            log(f"✅ 캐시 파일({cache_file_name})이 존재합니다. 캐시에서 데이터를 불러옵니다.", force=True)
             with open(cache_path, "r", encoding="utf-8") as f:
                 cached_json = json.load(f)
                 analyzer.participants = cached_json['participants']
                 analyzer.previous_create_at = cached_json['update_time']
         else:
             if args.use_cache and cache_update_required:
-                logging.info(f"🔄 리포지토리의 최근 이슈 생성 시간이 캐시파일의 생성 시간보다 최근입니다. GitHub API로 데이터를 수집합니다.")
+                log(f"🔄 리포지토리의 최근 이슈 생성 시간이 캐시파일의 생성 시간보다 최근입니다. GitHub API로 데이터를 수집합니다.", force=True)
             else:
-                logging.info(f"�� 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.")
+                log(f"�� 캐시를 사용하지 않거나 캐시 파일({cache_file_name})이 없습니다. GitHub API로 데이터를 수집합니다.", force=True)
             analyzer.collect_PRs_and_issues()
             if not getattr(analyzer, "_data_collected", True):
                 logging.error("❌ GitHub API 요청에 실패했습니다. 결과 파일을 생성하지 않고 종료합니다.")
@@ -232,20 +239,20 @@ def main() -> None:
                 table_path = os.path.join(repo_output_dir, "score.csv")
                 output_handler.generate_table(repo_scores, save_path=table_path)
                 output_handler.generate_count_csv(repo_scores, save_path=table_path)
-                logging.info(f"[개별 저장소] CSV 파일 저장 완료: {table_path}")
+                log(f"CSV 파일 저장 완료: {table_path}", force=True)
 
             # 2) 텍스트 테이블 저장
             if FORMAT_TEXT in formats:
                 txt_path = os.path.join(repo_output_dir, "score.txt")
                 output_handler.generate_text(repo_scores, txt_path)
-                logging.info(f"[개별 저장소] 텍스트 파일 저장 완료: {txt_path}")
+                log(f"텍스트 파일 저장 완료: {txt_path}", force=True)
 
             # 3) 차트 이미지 저장
             if FORMAT_CHART in formats:
                 chart_filename = "chart_grade.png" if args.grade else "chart.png"
                 chart_path = os.path.join(repo_output_dir, chart_filename)
                 output_handler.generate_chart(repo_scores, save_path=chart_path, show_grade=args.grade)
-                logging.info(f"[개별 저장소] 차트 이미지 저장 완료: {chart_path}")
+                log(f"차트 이미지 저장 완료: {chart_path}", force=True)
 
             # 전체 참여자 데이터 병합
             overall_participants = merge_participants(overall_participants, analyzer.participants)
@@ -256,7 +263,7 @@ def main() -> None:
 
     # 전체 저장소 통합 분석
     if len(final_repositories) > 1:
-        logging.info("\n=== 전체 저장소 통합 분석 ===")
+        log("\n=== 전체 저장소 통합 분석 ===", force=True)
         
         # 통합 분석을 위한 analyzer 생성
         overall_analyzer = RepoAnalyzer("multiple_repos", token=github_token, theme=args.theme)
@@ -274,20 +281,20 @@ def main() -> None:
             table_path = os.path.join(overall_output_dir, "score.csv")
             output_handler.generate_table(overall_scores, save_path=table_path)
             output_handler.generate_count_csv(overall_scores, save_path=table_path)
-            logging.info(f"[통합 저장소] CSV 파일 저장 완료: {table_path}")
+            log(f"[통합 저장소] CSV 파일 저장 완료: {table_path}", force=True)
         
         # 2) 텍스트 테이블 저장
         if FORMAT_TEXT in formats:
             txt_path = os.path.join(overall_output_dir, "score.txt")
             output_handler.generate_text(overall_scores, txt_path)
-            logging.info(f"[통합 저장소] 텍스트 파일 저장 완료: {txt_path}")
+            log(f"[통합 저장소] 텍스트 파일 저장 완료: {txt_path}", force=True)
         
         # 3) 차트 이미지 저장
         if FORMAT_CHART in formats:
             chart_filename = "chart_grade.png" if args.grade else "chart.png"
             chart_path = os.path.join(overall_output_dir, chart_filename)
             output_handler.generate_chart(overall_scores, save_path=chart_path, show_grade=args.grade)
-            logging.info(f"[통합 저장소] 차트 이미지 저장 완료: {chart_path}")
+            log(f"[통합 저장소] 차트 이미지 저장 완료: {chart_path}", force=True)
 
 if __name__ == "__main__":
     main()

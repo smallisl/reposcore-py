@@ -8,10 +8,9 @@ from prettytable import PrettyTable
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from .common_utils import *
-from .theme_manager import ThemeManager 
+from .common_utils import log
+from .theme_manager import ThemeManager
 
-import logging
 import sys
 import os
 
