@@ -4,7 +4,7 @@ import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from .common_utils import *
+from .common_utils import log, is_verbose
 from .github_utils import *
 from .theme_manager import ThemeManager 
 
@@ -61,9 +61,9 @@ class RepoAnalyzer:
                 logging.error(f"입력한 저장소 '{repo_path}'가 GitHub에 존재하지 않습니다.")
                 sys.exit(1)
         elif self._is_test_repo:
-            logging.info(f"ℹ️ [TEST MODE] '{repo_path}'는 테스트용 저장소로 간주합니다.")
+            log(f"ℹ️ [TEST MODE] '{repo_path}'는 테스트용 저장소로 간주합니다.", force=True)
         elif self._is_multiple_repos:
-            logging.info(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.")
+            log(f"ℹ️ [통합 분석] 여러 저장소의 통합 분석을 수행합니다.", force=True)
 
         self.repo_path = repo_path
         self.participants: dict[str, dict[str, int]] = {}
@@ -203,9 +203,9 @@ class RepoAnalyzer:
                 user: info for user, info in self.participants.items()
                 if user not in self.EXCLUDED_USERS
             }
-            logging.info("\n참여자별 활동 내역 (participants 딕셔너리):")
+            log("\n참여자별 활동 내역 (participants 딕셔너리):", force=is_verbose)
             for user, info in self.participants.items():
-                logging.info(f"{user}: {info}")
+                log(f"{user}: {info}", force=is_verbose)
 
     def _extract_pr_counts(self, activities: dict) -> tuple[int, int, int, int, int]:
         """PR 관련 카운트 추출"""
