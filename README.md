@@ -26,7 +26,6 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
-[2025-04-30 16:28:07] [INFO] generated new fontManager
 usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
@@ -80,22 +79,34 @@ $I_d^* = I_{\text{valid}} - I_{fb}^* \quad$ 남은 개수에서 문서 이슈 �
 최종 점수 계산 공식:  
 $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
 
-## [프로젝트 참여 주의사항](docs/project_guidelines.md)
+## 📚 가이드 문서 모음
 
-## [테스트 가이드](docs/test-guide.md)
+### ⚙️ 프로젝트 시작
+- [프로젝트 참여 주의사항 (필수)](docs/project_guidelines.md)
+  - 프로젝트 규칙과 참여 방법.
+- [fork 저장소를 원본 저장소와 sync 하는 방법](docs/fork_sync_guide.md)
+  - 포크 저장소 동기화 가이드.
 
-## [디버깅 및 로깅 가이드](docs/debug_guide.md)
+### 🛠️ 개발 환경 설정
+- [한국 시간대(Asia/Seoul) 설정 가이드](docs/korean-timezone-guide.md)
+  - Codespaces에서 한국 시간대 설정 방법.
+- [파이썬 플러그인 설치 가이드](docs/python_plugin_guide.md)
+  - Python 개발 환경 설정.
+- [차트 생성시 한글 폰트 깨짐 이슈 해결 가이드](docs/chart-font-guide.md)
+  - 차트 폰트 문제 해결 방법.
 
-## [GitHub API 가이드](docs/github_api_guide.md)
+### 📊 도구 활용
+- [README.md 자동 생성 및 최신 상태 유지 가이드](docs/readme_version_check_guide.md)
+  - README 자동화 방법.
 
-## [토큰 생성 방법](docs/github-token-guide.md)
+### 🔗 GitHub 관련 기능
+- [GitHub API 가이드](docs/github_api_guide.md)
+  - GitHub API 사용 방법.
+- [토큰 생성 방법](docs/github-token-guide.md)
+  - GitHub 토큰 생성 및 설정.
 
-## [한국 시간대(Asia/Seoul) 설정 가이드](docs/korean-timezone-guide.md)
-
-## [README.md 자동 생성 및 최신 상태 유지 가이드](docs/readme_version_check_guide.md)
-
-## [차트 생성시 한글 폰트 깨짐 이슈 해결 가이드](docs/chart-font-guide.md)
-
-## [fork 저장소를 원본 저장소와 sync 하는 방법](docs/fork_sync_guide.md)
-
-## [파이썬 플러그인 설치 가이드](docs/python_plugin_guide.md)
+### 🧪 테스트 및 개발
+- [테스트 가이드](docs/test-guide.md)
+  - 테스트 작성 및 실행 방법.
+- [디버깅 및 로깅 가이드](docs/debug_guide.md)
+  - 디버깅과 로깅 기술.
