@@ -119,6 +119,35 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+args = parse_arguments()
+
+def handle_individual_user_mode(args):
+    repo = args.repository[0]
+    analyzer = RepoAnalyzer(repo, token=args.token, theme=args.theme)
+    analyzer.collect_PRs_and_issues()
+
+    user_info = None
+    if args.user_info and os.path.exists(args.user_info):
+        with open(args.user_info, "r", encoding="utf-8") as f:
+            user_info = json.load(f)
+
+    repo_scores = analyzer.calculate_scores(user_info)
+    user_lookup_name = user_info.get(args.user, args.user) if user_info else args.user
+
+    if user_lookup_name in repo_scores:
+        sorted_users = list(repo_scores.keys())
+        rank = sorted_users.index(user_lookup_name) + 1
+        score = repo_scores[user_lookup_name]["total"]
+        print(f"[INFO] 사용자: {user_lookup_name}")
+        print(f"[INFO] 총점: {score:.2f}점")
+        print(f"[INFO] 등수: {rank}등 (전체 {len(sorted_users)}명 중)")
+    else:
+        print(f"[INFO] 사용자 '{args.user}'의 점수를 찾을 수 없습니다.")
+
+if args.user:                        
+    handle_individual_user_mode(args)
+    sys.exit(0)
+
 def merge_participants(
     overall: dict[str, dict[str, int]],
     new_data: dict[str, dict[str, int]]
