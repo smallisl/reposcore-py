@@ -26,7 +26,7 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
-usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
+usage: python -m reposcore [-h] [-v] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
@@ -36,6 +36,7 @@ positional arguments:
 
 options:
   -h, --help            도움말 표시 후 종료
+  -v, --verbose         자세한 로그를 출력합니다.
   --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
   --format {table, text, chart, all} [{table, text, chart, all} ...]
                         결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart)
@@ -46,9 +47,40 @@ options:
   --check-limit         현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다.
   --user-info USER_INFO
                         사용자 정보 파일의 경로
+  --user username       특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)
   --theme {default,dark}, -t {default,dark}
                         테마 선택 (default 또는 dark)
 ```
+
+### 단일 저장소 분석
+
+아래 명령어로 단일 GitHub 저장소의 기여도를 분석할 수 있습니다:
+
+```bash
+python -m reposcore oss2025hnu/reposcore-py --format all
+```
+
+분석 결과는 `results/사용자명_저장소명/` 경로에 아래와 같이 저장됩니다:
+
+- `score.csv`: 기여자별 점수 테이블 (CSV 형식)
+- `score.txt`: 기여자별 점수 요약 텍스트
+- `chart.png`: 기여도 시각화 차트
+
+---
+
+### 여러 저장소 통합 분석
+
+여러 저장소를 동시에 분석하면, 각 저장소 결과와 함께 **통합 점수**도 함께 출력됩니다:
+
+```bash
+python -m reposcore oss2025hnu/reposcore-py oss2025hnu/reposcore-js oss2025hnu/reposcore-cs --format all
+```
+
+- 개별 저장소 분석 결과는 각각 `results/사용자명_저장소명/` 폴더에 저장됩니다.
+- 통합 분석 결과는 `results/overall/` 폴더에 저장되며 다음 파일들이 포함됩니다:
+  - `score.csv`: 전체 통합 기여자 점수 테이블
+  - `score.txt`: 전체 기여자 점수 요약 텍스트
+  - `chart.png`: 통합 기여도 시각화 차트
 
 ## Score Formula
 아래는 PR 개수와 이슈 개수의 비율에 따라 점수로 인정가능한 최대 개수를 구하고 각 배점에 따라 최종 점수를 산출하는 공식이다.
