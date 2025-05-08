@@ -26,7 +26,7 @@ python -m reposcore [OPTIONS]
 ```
 
 ```
-usage: python -m reposcore [-h] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
+usage: python -m reposcore [-h] [-v] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
 
@@ -36,6 +36,7 @@ positional arguments:
 
 options:
   -h, --help            도움말 표시 후 종료
+  -v, --verbose         자세한 로그를 출력합니다.
   --output dir_name     분석 결과를 저장할 출력 디렉토리 (기본값: 'results')
   --format {table, text, chart, all} [{table, text, chart, all} ...]
                         결과 출력 형식 선택 (복수 선택 가능, 예: --format table chart)
@@ -46,6 +47,7 @@ options:
   --check-limit         현재 GitHub API 요청 가능 횟수와 전체 한도를 확인합니다.
   --user-info USER_INFO
                         사용자 정보 파일의 경로
+  --user username       특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)
   --theme {default,dark}, -t {default,dark}
                         테마 선택 (default 또는 dark)
 ```
