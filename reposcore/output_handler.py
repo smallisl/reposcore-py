@@ -95,11 +95,7 @@ class OutputHandler:
         df = df.round(1)
         df.index.name = 'name'  # 인덱스 이름을 'name'으로 설정
 
-        # 먼저 파일 열어서 시간 정보 한 줄 작성
-        with open(save_path, 'w', encoding='utf-8') as f:
-            f.write(f"# 분석 기준 시각: {timestamp}\n")
-
-        df.to_csv(save_path, encoding='utf-8', mode='a')
+        df.to_csv(save_path, encoding='utf-8')
 
     def generate_text(self, scores: dict[str, dict[str, float]], save_path) -> None:
         """결과를 텍스트 파일로 출력"""
