@@ -39,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = FriendlyArgumentParser(
         prog="python -m reposcore",
         usage=(
-            "python -m reposcore [-h] [owner/repo ...] "
+            "python -m reposcore [-h] [-v] [owner/repo ...] "
             "[--output dir_name] "
             f"[--format {{{VALID_FORMATS_DISPLAY}}}] "
             "[--check-limit] "
@@ -48,11 +48,6 @@ def parse_arguments() -> argparse.Namespace:
         description="오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구",
         add_help=False
     )
-    parser.add_argument(
-        "-h", "--help",
-        action="help",
-        help="도움말 표시 후 종료"
-    )
     # 저장소 인자를 하나 이상 받도록 nargs="+"로 변경
     parser.add_argument(
         "repository",
@@ -60,6 +55,16 @@ def parse_arguments() -> argparse.Namespace:
         nargs="+",
         metavar="owner/repo",
         help="분석할 GitHub 저장소들 (형식: '소유자/저장소'). 여러 저장소의 경우 공백 혹은 쉼표로 구분하여 입력"
+    )
+    parser.add_argument(
+        "-h", "--help",
+        action="help",
+        help="도움말 표시 후 종료"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="자세한 로그를 출력합니다."
     )
     parser.add_argument(
         "--output",
@@ -102,20 +107,16 @@ def parse_arguments() -> argparse.Namespace:
         help="사용자 정보 파일의 경로"
     )
     parser.add_argument(
+        "--user",
+        type=str,
+        metavar="username",
+        help="특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)"
+    )
+    parser.add_argument(
         "--theme", "-t",
         choices=["default", "dark"],
         default="default",
         help="테마 선택 (default 또는 dark)"
-    )
-    parser.add_argument(
-    "-v", "--verbose",
-    action="store_true",
-    help="자세한 로그를 출력합니다."
-    )
-    parser.add_argument(
-    "--user",
-    type=str,
-    help="특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)"
     )
     return parser.parse_args()
 
