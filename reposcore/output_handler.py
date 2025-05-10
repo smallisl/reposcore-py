@@ -46,6 +46,7 @@ class OutputHandler:
             self.theme_manager.current_theme = theme_name
         else:
             raise ValueError(f"지원하지 않는 테마입니다: {theme_name}")
+            
 
     def _calculate_grade(self, total_score: float) -> str:
         """점수에 따른 등급 계산"""
@@ -53,9 +54,16 @@ class OutputHandler:
             if total_score >= threshold:
                 return grade
         return 'F'
+    
+    @staticmethod
+    def get_kst_timestamp() -> str:
+        """현재 KST(한국 시간) 기준 타임스탬프 반환"""
+        kst = ZoneInfo("Asia/Seoul")
+        return datetime.now(tz=kst).strftime("%Y-%m-%d %H:%M:%S (KST)")
 
     def generate_table(self, scores: dict[str, dict[str, float]], save_path) -> None:
         """결과를 테이블 형태로 출력"""
+        timestamp = self.get_kst_timestamp()
         table = PrettyTable()
         table.field_names = ["참여자", "총점", "등급", "PR(기능/버그)", "PR(문서)", "PR(오타)", "이슈(기능/버그)", "이슈(문서)"]
         
@@ -75,21 +83,25 @@ class OutputHandler:
             table.add_row(row)
         
         with open(save_path, 'w', encoding='utf-8') as f:
+            f.write(f"=== 참여자별 점수 (분석 기준 시각: {timestamp}) ===\n\n")
             f.write(str(table))
 
     def generate_count_csv(self, scores: dict, save_path: str = None) -> None:
         """결과를 CSV 파일로 출력"""
+        timestamp = self.get_kst_timestamp()
         df = pd.DataFrame.from_dict(scores, orient='index')
         # grade 컬럼 제거
         df = df.drop('grade', axis=1, errors='ignore')
         df = df.round(1)
         df.index.name = 'name'  # 인덱스 이름을 'name'으로 설정
+
         df.to_csv(save_path, encoding='utf-8')
 
     def generate_text(self, scores: dict[str, dict[str, float]], save_path) -> None:
         """결과를 텍스트 파일로 출력"""
+        timestamp = self.get_kst_timestamp()
         with open(save_path, 'w', encoding='utf-8') as f:
-            f.write("=== 참여자별 점수 ===\n\n")
+            f.write(f"=== 참여자별 점수 (분석 기준 시각: {timestamp}) ===\n\n")
             
             for name, score in scores.items():
                 # 등급 계산
@@ -127,7 +139,9 @@ class OutputHandler:
             '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',  # 본고딕
             '/usr/share/fonts/truetype/baekmuk/baekmuk.ttf'  # 백묵
         ]
-        
+
+        timestamp = self.get_kst_timestamp()
+
         for font_path in font_paths:
             if os.path.exists(font_path):
                 fm.fontManager.addfont(font_path)
@@ -185,6 +199,15 @@ class OutputHandler:
         # 가로축 여백 조정 (텍스트 잘림 방지)
         max_score = max(total_scores) if total_scores else 100
         ax.set_xlim(0, max_score + max_score * self.CHART_CONFIG['text_padding'])
+
+        plt.gcf().text(
+            0.95, 0.01,
+            f"분석 기준 시각: {timestamp}",
+            ha='right',
+            va='bottom',
+            fontsize=8,
+            color='gray'
+        )
 
         # 여백 조정
         plt.tight_layout()
