@@ -211,3 +211,46 @@ class OutputHandler:
         # 저장
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close() 
+
+    def generate_repository_stacked_chart(self, scores: dict, save_path: str):
+        if not scores:
+            return
+
+        # ✅ 모든 사용자 기준으로 저장소 키 수집
+        repo_keys = set()
+        for user_data in scores.values():
+            repo_keys.update([k for k in user_data.keys() if k not in ["total", "grade"]])
+        repo_keys = sorted(repo_keys)  # 보기 좋게 정렬해도 OK
+
+        # 총점 기준 내림차순 정렬
+        sorted_users = sorted(scores.items(), key=lambda x: x[1].get("total", 0), reverse=True)
+        usernames = [user for user, _ in sorted_users]
+
+        # 저장소별 점수 추출
+        scores_by_repo = {
+            repo: [scores[user].get(repo, 0) for user in usernames]
+            for repo in repo_keys
+        }
+
+        # 저장소별 색상 지정
+        color_map = {
+            "oss2025hnu_reposcore-py": "#6baed6",   # 파랑
+            "oss2025hnu_reposcore-js": "#74c476",   # 연초록
+            "oss2025hnu_reposcore-cs": "#fd8d3c"    # 주황
+        }
+
+        bottom = [0] * len(usernames)
+        plt.figure(figsize=(12, max(4, len(usernames) * 0.35)))
+
+        for repo in repo_keys:
+            color = color_map.get(repo.lower(), "#bbbbbb")
+            plt.barh(usernames, scores_by_repo[repo], left=bottom, label=repo.upper(), color=color)
+            bottom = [b + s for b, s in zip(bottom, scores_by_repo[repo])]
+
+        plt.xlabel("점수")
+        plt.title("사용자별 저장소 기여도 (py/js/cs)")
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+        plt.gca().invert_yaxis()
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
