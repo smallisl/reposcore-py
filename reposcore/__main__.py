@@ -182,7 +182,7 @@ def main() -> None:
         check_rate_limit(token=github_token)
         sys.exit(0)
 
-   # --user-info 옵션으로 지정된 파일이 존재하는지, JSON 파싱이 가능한지 검증
+    # --user-info 옵션으로 지정된 파일이 존재하는지, JSON 파싱이 가능한지 검증
     if args.user_info:
         # 1) 파일 존재 여부 확인
         if not os.path.isfile(args.user_info):
