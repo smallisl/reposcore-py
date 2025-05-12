@@ -13,24 +13,34 @@
 }
 ```
 
-| 필드 이름         | 설명                                         | 필수 여부 |
-|------------------|----------------------------------------------|-----------|
-| `github_username` | GitHub 사용자명. 내부 프로필 연동에 사용됩니다. | ✅        |
-| `display_name`    | 출력에 사용할 표시 이름입니다.                 | ⛔️        |
+또는:
+
+```json
+{
+  "github_username": "bob42"
+}
+```
+
+| 필드 이름             | 설명                             | 필수 유문          |                        |    |
+| ----------------- | ------------------------------ | -------------- | ---------------------- | -- |
+| `github_username` | GitHub 사용자명. 내부 프리플 연동에 사용됩니다. | ✅              |                        |    |
+| `display_name`    | Í                              | `display_name` | \xcd9c력에 사용할 표시 이름입니다. | ⛘️ |
 
 ---
 
 ## ❌ 잘못된 형식 입력 예시 및 에러 메시지
 
-| 입력 JSON                         | 예상 에러 메시지                            |
-|----------------------------------|--------------------------------------------|
-| `{}`                             | `Missing required field: github_username`  |
-| `{"github_username": 123}`       | `Invalid type: github_username must be a string` |
-| `invalid_json.txt` (파싱 불가)    | `Failed to parse --user-info JSON file`    |
+| 입력 JSON                                        | 예상 에러 메시지                                        |
+| ---------------------------------------------- | ------------------------------------------------ |
+| `{}`                                           | `Missing required field: github_username`        |
+| `{"github_username": 123}`                     | `Invalid type: github_username must be a string` |
+| `invalid_json.txt` (파싱 불가)                     | `Failed to parse --user-info JSON file`          |
+| `{ "display_name": "NoGitHub" }`               | `Missing required field: github_username`        |
+| `{ "github_username": "alice", "extra": 123 }` | `Unexpected field: extra`                        |
 
 ---
 
-## 📎 사용 예
+## 📌 사용 예
 
 ```bash
 mytool run --user-info user_info.json
