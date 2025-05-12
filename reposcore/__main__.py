@@ -7,6 +7,8 @@ import requests
 from datetime import datetime
 import json
 import logging
+from collections import defaultdict
+import pandas as pd
 
 from .common_utils import *
 from .github_utils import *
@@ -216,6 +218,7 @@ def main() -> None:
     log(f"저장소 분석 시작: {', '.join(final_repositories)}", force=True)
 
     overall_participants = {}
+    all_repo_scores = {}
     
     #저장소별로 분석 후 '개별 결과'도 저장하기
     for repo in final_repositories:
@@ -280,6 +283,7 @@ def main() -> None:
             repo_safe_name = repo.replace('/', '_')
             repo_output_dir = os.path.join(args.output, repo_safe_name)
             os.makedirs(repo_output_dir, exist_ok=True)
+            all_repo_scores[repo_safe_name] = repo_scores
 
             # 1) CSV 테이블 저장
             if FORMAT_TABLE in formats:
@@ -354,6 +358,73 @@ def main() -> None:
             chart_path = os.path.join(overall_output_dir, chart_filename)
             output_handler.generate_chart(overall_scores, save_path=chart_path, show_grade=args.grade)
             log(f"[통합 저장소] 차트 이미지 저장 완료: {chart_path}", force=True)
+
+    # 사용자별 저장소별 점수 CSV 만드는 함수
+    def generate_overall_repository_csv(all_repo_scores, output_path):
+        user_scores = defaultdict(dict)
+
+        for repo_name, repo_scores in all_repo_scores.items():
+            for username, score_dict in repo_scores.items():
+                user_scores[username][repo_name] = score_dict["total"]
+
+        for username in user_scores:
+            user_scores[username]["total"] = sum(user_scores[username].values())
+
+        df = pd.DataFrame.from_dict(user_scores, orient='index').fillna(0)
+        df.index.name = "name"
+        column_order = [
+            "oss2025hnu_reposcore-py",
+            "oss2025hnu_reposcore-js",
+            "oss2025hnu_reposcore-cs",
+            "total"
+        ]
+        existing_columns = [col for col in column_order if col in df.columns]
+        df = df[existing_columns]
+        df = df.astype(int)
+        df.reset_index(inplace=True)
+        df = df[["name"] + existing_columns]
+        df = df.sort_values(by="total", ascending=False)
+        df.to_csv(output_path, encoding="utf-8", index=False)
+
+    # 저장 경로 지정하고 생성
+    overall_repo_dir = os.path.join(args.output, "overall_repository")
+    os.makedirs(overall_repo_dir, exist_ok=True)
+
+    overall_csv_path = os.path.join(overall_repo_dir, "overall_scores.csv")
+    generate_overall_repository_csv(all_repo_scores, overall_csv_path)
+    log(f"[📊 overall_repository] 저장소별 사용자 점수 CSV 저장 완료: {overall_csv_path}", force=True)
+
+    # 🔽 텍스트 파일 저장: overall_scores.txt
+    overall_txt_path = os.path.join(overall_repo_dir, "overall_scores.txt")
+    with open(overall_txt_path, "w", encoding="utf-8") as f:
+        sorted_users = sorted(all_repo_scores.keys())
+        
+        # 사용자 점수 재구성 (user_scores: username → repo별 점수)
+        user_scores = defaultdict(dict)
+        for repo_name, repo_scores in all_repo_scores.items():
+            for username, score_dict in repo_scores.items():
+                user_scores[username][repo_name] = score_dict["total"]
+
+        # 총점 계산 후 정렬
+        for username in user_scores:
+            user_scores[username]["total"] = sum(user_scores[username].values())
+
+        sorted_users = sorted(user_scores.items(), key=lambda x: x[1]["total"], reverse=True)
+
+        for username, score_dict in sorted_users:
+            f.write(f"📊 {username}\n")
+            f.write(f"총점: {score_dict['total']}점\n")
+            for repo in final_repositories:
+                repo_key = repo.replace("/", "_")
+                if repo_key in score_dict:
+                    f.write(f"{repo_key}: {score_dict[repo_key]}점\n")
+            f.write("\n")  # 사용자별 공백 줄
+    log(f"[📊 overall_repository] 저장소별 사용자 점수 TXT 저장 완료: {overall_txt_path}", force=True)
+
+    # 📈 통합 차트 이미지 저장
+    chart_path = os.path.join(overall_repo_dir, "chart.png")
+    output_handler.generate_repository_stacked_chart(user_scores, save_path=chart_path)
+    log(f"[📊 overall_repository] 누적 기여도 차트 저장 완료: {chart_path}", force=True)
 
 if __name__ == "__main__":
     main()
