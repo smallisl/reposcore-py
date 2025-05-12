@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pandas as pd
 from prettytable import PrettyTable
-from datetime import datetime, timezone
+import numpy as np
+from datetime import datetime, timezone, date
 from zoneinfo import ZoneInfo
 
 from .common_utils import log
@@ -26,6 +27,8 @@ class OutputHandler:
         'font_size': 9,                # 폰트 크기
         'text_padding': 0.1            # 텍스트 배경 상자 패딩
     }
+
+    
     
     # 등급 기준
     GRADE_THRESHOLDS = {
@@ -253,4 +256,27 @@ class OutputHandler:
         plt.tight_layout()
         plt.gca().invert_yaxis()
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+    def generate_weekly_chart(self, weekly_data: dict[int, dict[str, int]], semester_start_date: date, save_path: str) -> None:
+        """주차별 PR/이슈 활동량을 막대그래프로 시각화하여 저장"""
+
+        weeks = sorted(weekly_data.keys())
+        pr_counts = [weekly_data[w]["pr"] for w in weeks]
+        issue_counts = [weekly_data[w]["issue"] for w in weeks]
+
+        x = np.arange(len(weeks))
+        width = 0.35  # 막대 너비
+
+        plt.figure(figsize=(10, 4))
+        plt.bar(x - width/2, pr_counts, width, label="PR", color='skyblue')
+        plt.bar(x + width/2, issue_counts, width, label="Issue", color='lightgreen')
+
+        plt.xlabel("주차")
+        plt.ylabel("건수")
+        plt.title("주차별 GitHub 활동량 (PR/Issue)")
+        plt.xticks(x, [f"Week {w}" for w in weeks])
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(save_path)
         plt.close()
