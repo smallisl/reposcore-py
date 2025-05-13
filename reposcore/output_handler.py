@@ -5,8 +5,11 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pandas as pd
 from prettytable import PrettyTable
-from datetime import datetime, timezone
+import numpy as np
+from datetime import datetime, timezone, date
 from zoneinfo import ZoneInfo
+from prettytable import PrettyTable
+
 
 from .common_utils import log
 from .theme_manager import ThemeManager
@@ -26,6 +29,8 @@ class OutputHandler:
         'font_size': 9,                # 폰트 크기
         'text_padding': 0.1            # 텍스트 배경 상자 패딩
     }
+
+    
     
     # 등급 기준
     GRADE_THRESHOLDS = {
@@ -97,22 +102,35 @@ class OutputHandler:
 
         df.to_csv(save_path, encoding='utf-8')
 
-    def generate_text(self, scores: dict[str, dict[str, float]], save_path) -> None:
-        """결과를 텍스트 파일로 출력"""
+
+    def generate_text(self, scores: dict[str, dict[str, float]], save_path: str) -> None:
+        """PrettyTable을 사용해 참여자 점수를 표 형식으로 출력"""
         timestamp = self.get_kst_timestamp()
+
+        table = PrettyTable()
+        table.field_names = [
+            "Name", "Total Score", "Grade",
+            "PR (Feature/Bug)", "PR (Docs)", "PR (Typos)",
+            "Issue (Feature/Bug)", "Issue (Docs)"
+        ]
+
+        for name, score in scores.items():
+            grade = self._calculate_grade(score["total"])
+            table.add_row([
+                name,
+                f"{score['total']:.1f}",
+                grade,
+                f"{score['feat/bug PR']:.1f}",
+                f"{score['document PR']:.1f}",
+                f"{score['typo PR']:.1f}",
+                f"{score['feat/bug issue']:.1f}",
+                f"{score['document issue']:.1f}",
+            ])
+
         with open(save_path, 'w', encoding='utf-8') as f:
             f.write(f"=== 참여자별 점수 (분석 기준 시각: {timestamp}) ===\n\n")
-            
-            for name, score in scores.items():
-                # 등급 계산
-                grade = self._calculate_grade(score['total'])
-                f.write(f"📊 {name}\n")
-                f.write(f"   총점: {score['total']:.1f} ({grade})\n")
-                f.write(f"   PR(기능/버그): {score['feat/bug PR']:.1f}\n")
-                f.write(f"   PR(문서): {score['document PR']:.1f}\n")
-                f.write(f"   PR(오타): {score['typo PR']:.1f}\n")
-                f.write(f"   이슈(기능/버그): {score['feat/bug issue']:.1f}\n")
-                f.write(f"   이슈(문서): {score['document issue']:.1f}\n\n")
+            f.write(table.get_string())
+
 
     def _calculate_activity_ratios(self, participant_scores: dict) -> tuple[float, float, float]:
         """활동 비율 계산"""
@@ -126,7 +144,7 @@ class OutputHandler:
         pr_ratio = total_pr / total
         issue_ratio = total_issue / total
         code_ratio = (sum(score['feat/bug PR'] for score in participant_scores.values()) + 
-                     sum(score['feat/bug issue'] for score in participant_scores.values())) / total
+                    sum(score['feat/bug issue'] for score in participant_scores.values())) / total
 
         return pr_ratio, issue_ratio, code_ratio
 
@@ -181,16 +199,21 @@ class OutputHandler:
             if show_grade:
                 grade = self._calculate_grade(total)
                 ax.text(total + 1, i, f'{total:.1f} ({grade})', 
-                       va='center', fontsize=self.CHART_CONFIG['font_size'])
+                    va='center', fontsize=self.CHART_CONFIG['font_size'])
             else:
                 ax.text(total + 1, i, f'{total:.1f}', 
-                       va='center', fontsize=self.CHART_CONFIG['font_size'])
+                    va='center', fontsize=self.CHART_CONFIG['font_size'])
 
         # 축 설정
         ax.set_yticks(y_pos)
         ax.set_yticklabels(participants)
         ax.set_xlabel('Score')
-        ax.set_title('Repository Contribution Scores')
+        ax.set_title(
+            f'Repository Contribution Scores\n(분석 기준 시각: {timestamp})',
+            fontsize=14,
+            loc='center',  # 또는 'left', 'right'
+            color='black'
+        )
         ax.invert_yaxis()
 
         # 범례 추가 (테두리 없음)
@@ -200,18 +223,75 @@ class OutputHandler:
         max_score = max(total_scores) if total_scores else 100
         ax.set_xlim(0, max_score + max_score * self.CHART_CONFIG['text_padding'])
 
-        plt.gcf().text(
-            0.95, 0.01,
-            f"분석 기준 시각: {timestamp}",
-            ha='right',
-            va='bottom',
-            fontsize=8,
-            color='gray'
-        )
-
         # 여백 조정
         plt.tight_layout()
 
         # 저장
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close() 
+
+    def generate_repository_stacked_chart(self, scores: dict, save_path: str):
+        if not scores:
+            return
+
+        # ✅ 모든 사용자 기준으로 저장소 키 수집
+        repo_keys = set()
+        for user_data in scores.values():
+            repo_keys.update([k for k in user_data.keys() if k not in ["total", "grade"]])
+        repo_keys = sorted(repo_keys)  # 보기 좋게 정렬해도 OK
+
+        # 총점 기준 내림차순 정렬
+        sorted_users = sorted(scores.items(), key=lambda x: x[1].get("total", 0), reverse=True)
+        usernames = [user for user, _ in sorted_users]
+
+        # 저장소별 점수 추출
+        scores_by_repo = {
+            repo: [scores[user].get(repo, 0) for user in usernames]
+            for repo in repo_keys
+        }
+
+        # 저장소별 색상 지정
+        color_map = {
+            "oss2025hnu_reposcore-py": "#6baed6",   # 파랑
+            "oss2025hnu_reposcore-js": "#74c476",   # 연초록
+            "oss2025hnu_reposcore-cs": "#fd8d3c"    # 주황
+        }
+
+        bottom = [0] * len(usernames)
+        plt.figure(figsize=(12, max(4, len(usernames) * 0.35)))
+
+        for repo in repo_keys:
+            color = color_map.get(repo.lower(), "#bbbbbb")
+            plt.barh(usernames, scores_by_repo[repo], left=bottom, label=repo.upper(), color=color)
+            bottom = [b + s for b, s in zip(bottom, scores_by_repo[repo])]
+
+        plt.xlabel("점수")
+        plt.title("사용자별 저장소 기여도 (py/js/cs)")
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+        plt.gca().invert_yaxis()
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+
+    def generate_weekly_chart(self, weekly_data: dict[int, dict[str, int]], semester_start_date: date, save_path: str) -> None:
+        """주차별 PR/이슈 활동량을 막대그래프로 시각화하여 저장"""
+
+        weeks = sorted(weekly_data.keys())
+        pr_counts = [weekly_data[w]["pr"] for w in weeks]
+        issue_counts = [weekly_data[w]["issue"] for w in weeks]
+
+        x = np.arange(len(weeks))
+        width = 0.35  # 막대 너비
+
+        plt.figure(figsize=(10, 4))
+        plt.bar(x - width/2, pr_counts, width, label="PR", color='skyblue')
+        plt.bar(x + width/2, issue_counts, width, label="Issue", color='lightgreen')
+
+        plt.xlabel("주차")
+        plt.ylabel("건수")
+        plt.title("주차별 GitHub 활동량 (PR/Issue)")
+        plt.xticks(x, [f"Week {w}" for w in weeks])
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(save_path)
+        plt.close()
