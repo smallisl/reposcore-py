@@ -4,7 +4,8 @@
         "extensions": [
           "ms-python.python",
           "njpwerner.autodocstring",
-          "mechatroner.rainbow-csv"
+          "mechatroner.rainbow-csv",
+          "ritwickdey.LiveServer"
         ],
         "settings": {
           // Docstring 스타일: Google 스타일 (읽기 쉬움)
@@ -27,5 +28,4 @@
         }
       }
     }
-  }
-  
+}
