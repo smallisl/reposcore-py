@@ -161,7 +161,7 @@ class OutputHandler:
         issue_scores = [score_data["feat/bug issue"] + score_data["document issue"] for _, score_data in sorted_scores]
 
         # ✅ 서수 등수 붙이기
-        ranked_participants = [f"{get_ordinal_suffix(i+1)} {p}" for i, p in enumerate(participants)]
+        ranked_participants = [f"{user} ({get_ordinal_suffix(i+1)})" for i, user in enumerate(participants)]
 
         for font_path in font_paths:
             if os.path.exists(font_path):
@@ -258,7 +258,7 @@ class OutputHandler:
             else:
                 return f"{rank}th"
 
-        ranked_usernames = [f"{get_ordinal_suffix(i+1)} {user}" for i, user in enumerate(usernames)]
+        ranked_usernames = [f"{user} ({get_ordinal_suffix(i+1)})" for i, user in enumerate(usernames)]
 
         usernames = usernames[::-1]
         ranked_usernames = ranked_usernames[::-1]
