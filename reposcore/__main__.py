@@ -120,6 +120,19 @@ def parse_arguments() -> argparse.Namespace:
         default="default",
         help="테마 선택 (default 또는 dark)"
     )
+
+    parser.add_argument(
+    "--weekly-chart",
+    action="store_true",
+    help="주차별 PR/이슈 활동량 차트를 생성합니다."
+    )
+
+    parser.add_argument(
+        "--semester-start",
+        type=str,
+        help="학기 시작일 (형식: YYYY-MM-DD, 예: 2025-03-04)"
+    )
+
     return parser.parse_args()
 
 args = parse_arguments()
@@ -208,6 +221,23 @@ def main() -> None:
 
     # 각 저장소 유효성 검사
     for repo in final_repositories:
+        analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+
+    # 학기 시작일 설정은 collect 전에!
+        if args.weekly_chart:
+            if not args.semester_start:
+                logging.error("❌ --weekly-chart 사용 시 --semester-start 날짜를 반드시 지정해야 합니다.")
+                sys.exit(1)
+            try:
+                semester_start_date = datetime.strptime(args.semester_start, "%Y-%m-%d").date()
+                analyzer.set_semester_start_date(semester_start_date)
+            except ValueError:
+                logging.error("❌ 학기 시작일 형식이 잘못되었습니다. YYYY-MM-DD 형식으로 입력해 주세요.")
+                sys.exit(1)
+
+        analyzer.collect_PRs_and_issues()
+
+                
         if not validate_repo_format(repo):
             logging.error(f"오류: 저장소 '{repo}'는 'owner/repo' 형식으로 입력해야 합니다. 예) 'oss2025hnu/reposcore-py'")
             sys.exit(1)
@@ -226,6 +256,16 @@ def main() -> None:
 
         analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
         output_handler = OutputHandler(theme=args.theme)
+        if args.weekly_chart:
+            if not args.semester_start:
+                logging.error("❌ --weekly-chart 사용 시 --semester-start 날짜를 반드시 지정해야 합니다.")
+                sys.exit(1)
+            try:
+                semester_start_date = datetime.strptime(args.semester_start, "%Y-%m-%d").date()
+                analyzer.set_semester_start_date(semester_start_date)
+            except ValueError:
+                logging.error("❌ 학기 시작일 형식이 잘못되었습니다. YYYY-MM-DD 형식으로 입력해 주세요.")
+                sys.exit(1)
 
         # 저장소별 캐시 파일 생성 (예: cache_oss2025hnu_reposcore-py.json)
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
@@ -252,7 +292,7 @@ def main() -> None:
                 logging.error("ℹ️ 인증 없이 실행한 경우 요청 횟수 제한(403)일 수 있습니다. --token 옵션을 사용해보세요.")
                 sys.exit(1)
             with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump({'update_time':analyzer.previous_create_at, 'participants': analyzer.participants}, f, indent=2, ensure_ascii=False)
+                json.dump({'update_time':analyzer.previous_create_at, 'participants': analyzer.participants, 'weekly_activity': dict(analyzer.weekly_activity)}, f, indent=2, ensure_ascii=False)
 
         try:
             # 1) 사용자 정보 로드 (없으면 None)
@@ -305,6 +345,12 @@ def main() -> None:
                 output_handler.generate_chart(repo_scores, save_path=chart_path, show_grade=args.grade)
                 log(f"차트 이미지 저장 완료: {chart_path}", force=True)
 
+            # 주차별 활동 차트생성
+            if args.weekly_chart:
+                analyzer.set_semester_start_date(semester_start_date)
+                weekly_chart_path = os.path.join(repo_output_dir, "weekly_activity.png")
+                output_handler.generate_weekly_chart(analyzer.weekly_activity, semester_start_date, weekly_chart_path)
+
             # 전체 참여자 데이터 병합
             overall_participants = merge_participants(overall_participants, analyzer.participants)
 
@@ -314,6 +360,32 @@ def main() -> None:
 
     # 전체 저장소 통합 분석
     if len(final_repositories) > 1:
+        if args.weekly_chart:
+            overall_weekly_activity = defaultdict(lambda: {"pr": 0, "issue": 0})
+            for repo in final_repositories:
+                log(f"분석 시작: {repo}", force=True)
+                
+                analyzer = RepoAnalyzer(repo, token=github_token, theme=args.theme)
+                if args.weekly_chart:
+                    analyzer.set_semester_start_date(semester_start_date)
+
+                cache_file = f"cache_{repo.replace('/', '_')}.json"
+                cache_path = os.path.join(args.output, cache_file)
+                if os.path.exists(cache_path):
+                    with open(cache_path, "r", encoding="utf-8") as f:
+                        cache_data = json.load(f)
+                        repo_weekly = cache_data.get("weekly_activity", {})
+                        for week_str, data in repo_weekly.items():
+                            week = int(week_str)
+                            overall_weekly_activity[week]["pr"] += data.get("pr", 0)
+                            overall_weekly_activity[week]["issue"] += data.get("issue", 0)
+            
+            overall_output_dir = os.path.join(args.output, "overall")
+            os.makedirs(overall_output_dir, exist_ok=True)
+
+            weekly_chart_path = os.path.join(overall_output_dir, "weekly_activity.png")
+            output_handler.generate_weekly_chart(overall_weekly_activity, semester_start_date, weekly_chart_path)
+
         log("\n=== 전체 저장소 통합 분석 ===", force=True)
         
         # 통합 분석을 위한 analyzer 생성
