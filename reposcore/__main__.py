@@ -251,7 +251,13 @@ def main() -> None:
     all_repo_scores = {}
     
     #저장소별로 분석 후 '개별 결과'도 저장하기
-    from tqdm import tqdm
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        print("[오류] tqdm 라이브러리가 설치되어 있지 않습니다.")
+        print("다음 명령어로 설치 후 다시 실행하세요:")
+        print("pip install tqdm")
+        exit(1)
 
     for repo in tqdm(final_repositories, desc="저장소 분석 진행"):
 
