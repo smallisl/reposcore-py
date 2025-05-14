@@ -22,7 +22,6 @@ make requirements
 **⚠️ 반드시 저장소 최상위 디렉토리에서 실행해야 합니다. (python -m reposcore 명령은 상대 경로 기준으로 동작합니다.)**
 
 ```
-[2025-05-12 14:36:21] [INFO] generated new fontManager
 usage: python -m reposcore [-h] [-v] [owner/repo ...] [--output dir_name] [--format {table, text, chart, all}] [--check-limit] [--user-info path]
 
 오픈 소스 수업용 레포지토리의 기여도를 분석하는 CLI 도구
@@ -47,6 +46,9 @@ options:
   --user username       특정 사용자의 점수와 등수를 출력합니다 (GitHub 사용자명)
   --theme {default,dark}, -t {default,dark}
                         테마 선택 (default 또는 dark)
+  --weekly-chart        주차별 PR/이슈 활동량 차트를 생성합니다.
+  --semester-start SEMESTER_START
+                        학기 시작일 (형식: YYYY-MM-DD, 예: 2025-03-04)
 ```
 ## Clean results directory
 
@@ -85,6 +87,15 @@ python -m reposcore oss2025hnu/reposcore-py oss2025hnu/reposcore-js oss2025hnu/r
   - `score.csv`: 전체 통합 기여자 점수 테이블
   - `score.txt`: 전체 기여자 점수 요약 텍스트
   - `chart.png`: 통합 기여도 시각화 차트
+  
+---
+
+### 학기 시작일 기준 주차별 활동량 시각화
+학기 시작일을 기준으로 커밋, PR, 이슈 등의 주차별 활동량 변화를 시각화하는 결과를 생성합니다.
+```bash
+python -m reposcore <소유자/저장소> --semester-start YYYY-MM-DD --weekly-chart
+```
+
 
 ## Score Formula
 아래는 PR 개수와 이슈 개수의 비율에 따라 점수로 인정가능한 최대 개수를 구하고 각 배점에 따라 최종 점수를 산출하는 공식이다.

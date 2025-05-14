@@ -61,6 +61,15 @@ python -m reposcore oss2025hnu/reposcore-py oss2025hnu/reposcore-js oss2025hnu/r
   - `score.csv`: 전체 통합 기여자 점수 테이블
   - `score.txt`: 전체 기여자 점수 요약 텍스트
   - `chart.png`: 통합 기여도 시각화 차트
+  
+---
+
+### 학기 시작일 기준 주차별 활동량 시각화
+학기 시작일을 기준으로 커밋, PR, 이슈 등의 주차별 활동량 변화를 시각화하는 결과를 생성합니다.
+```bash
+python -m reposcore <소유자/저장소> --semester-start YYYY-MM-DD --weekly-chart
+```
+
 
 ## Score Formula
 아래는 PR 개수와 이슈 개수의 비율에 따라 점수로 인정가능한 최대 개수를 구하고 각 배점에 따라 최종 점수를 산출하는 공식이다.
