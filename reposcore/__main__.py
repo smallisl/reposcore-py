@@ -13,8 +13,6 @@ import pandas as pd
 from .common_utils import *
 from .github_utils import *
 from .analyzer import RepoAnalyzer
-from .output_handler import OutputHandler
-from . import common_utils
 
 # 포맷 상수
 FORMAT_TABLE = "table"
@@ -181,6 +179,8 @@ def merge_participants(
 
 def main() -> None:
     """Main execution function"""
+    from .output_handler import OutputHandler
+    from . import common_utils
     args = parse_arguments()
     common_utils.is_verbose = args.verbose
     github_token = args.token
