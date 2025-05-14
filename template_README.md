@@ -121,6 +121,8 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
   - README 자동화 방법.
 - [Pylint 사용 가이드](docs/pylint.md)
   - Pylint를 사용한 검사 기능 사용 방법.
+- [의존성 관리 가이드](docs/dependency_guide.md)
+  - requirements.txt 파일을 통한 라이브러리 관리 및 설치 방법.
 
 ### 🔗 GitHub 관련 기능
 - [GitHub API 가이드](docs/github_api_guide.md)
