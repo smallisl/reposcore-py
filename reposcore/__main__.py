@@ -15,6 +15,8 @@ from .github_utils import *
 from .analyzer import RepoAnalyzer
 from .output_handler import OutputHandler
 from . import common_utils
+from utils import parse_semester_start
+
 
 # 포맷 상수
 FORMAT_TABLE = "table"
@@ -260,12 +262,7 @@ def main() -> None:
             if not args.semester_start:
                 logging.error("❌ --weekly-chart 사용 시 --semester-start 날짜를 반드시 지정해야 합니다.")
                 sys.exit(1)
-            try:
-                semester_start_date = datetime.strptime(args.semester_start, "%Y-%m-%d").date()
-                analyzer.set_semester_start_date(semester_start_date)
-            except ValueError:
-                logging.error("❌ 학기 시작일 형식이 잘못되었습니다. YYYY-MM-DD 형식으로 입력해 주세요.")
-                sys.exit(1)
+            semester_start = parse_semester_start(args.semester_start)
 
         # 저장소별 캐시 파일 생성 (예: cache_oss2025hnu_reposcore-py.json)
         cache_file_name = f"cache_{repo.replace('/', '_')}.json"
