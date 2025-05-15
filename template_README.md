@@ -129,6 +129,8 @@ $S = 3P_{fb}^* + 2P_d^* + 1P_t^* + 2I_{fb}^* + 1I_d^*$
   - GitHub API 사용 방법.
 - [토큰 생성 방법](docs/github-token-guide.md)
   - GitHub 토큰 생성 및 설정.
+- [cherry-pick 이용 가이드](docs/cherry-pick_guide.md)
+  - cherry-pick 사용방법.
 
 ### 🧪 테스트 및 개발
 - [테스트 가이드](docs/test-guide.md)
