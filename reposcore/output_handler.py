@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import json
+import logging
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
