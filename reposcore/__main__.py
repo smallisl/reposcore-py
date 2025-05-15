@@ -160,7 +160,7 @@ def handle_individual_user_mode(args):
     else:
         print(f"[INFO] 사용자 '{args.user}'의 점수를 찾을 수 없습니다.")
 
-if args.user:                        
+if args.user and len(args.repository) == 1:
     handle_individual_user_mode(args)
     sys.exit(0)
 
@@ -313,14 +313,14 @@ def main() -> None:
 
             # --user 옵션이 지정된 경우 사용자 점수 및 등수 출력
             user_lookup_name = user_info.get(args.user, args.user) if args.user and user_info else args.user
-            if args.user and user_lookup_name in repo_scores:
+            if args.user and len(final_repositories) == 1 and user_lookup_name in repo_scores:
                 sorted_users = list(repo_scores.keys())
                 user_rank = sorted_users.index(user_lookup_name) + 1
                 user_score = repo_scores[user_lookup_name]["total"]
                 log(f"[INFO] 사용자: {user_lookup_name}", force=True)
                 log(f"[INFO] 총점: {user_score:.2f}점", force=True)
                 log(f"[INFO] 등수: {user_rank}등 (전체 {len(sorted_users)}명 중)", force=True)
-            elif args.user:
+            elif args.user and len(final_repositories) == 1:
                 log(f"[INFO] 사용자 '{args.user}'의 점수가 계산된 결과에 없습니다.", force=True)
 
             # 출력 형식
@@ -414,18 +414,6 @@ def main() -> None:
         
         # 통합 점수 계산
         overall_scores = overall_analyzer.calculate_scores(user_info)
-
-        # --user 옵션이 지정된 경우 통합 점수에서 출력
-        user_lookup_name = user_info.get(args.user, args.user) if args.user and user_info else args.user
-        if args.user and user_lookup_name in overall_scores:
-            sorted_users = list(overall_scores.keys())
-            user_rank = sorted_users.index(user_lookup_name) + 1
-            user_score = overall_scores[user_lookup_name]["total"]
-            log(f"[INFO] 사용자: {user_lookup_name}", force=True)
-            log(f"[INFO] 총점: {user_score:.2f}점", force=True)
-            log(f"[INFO] 등수: {user_rank}등 (전체 {len(sorted_users)}명 중)", force=True)
-        elif args.user:
-            log(f"[INFO] 사용자 '{args.user}'의 점수가 통합 분석 결과에 없습니다.", force=True)
         
         # 통합 결과 저장
         overall_output_dir = os.path.join(args.output, "overall")
@@ -540,6 +528,20 @@ def main() -> None:
 
         log(f"[📊 overall_repository] 분석 결과({', '.join(results_saved)}) 저장 완료: {overall_repo_dir}", force=True)
         log(f"[📊 overall_repository] 통합 저장소 기준 사용자별 기여도는 '{overall_repo_dir}' 폴더 내 결과 파일에서 확인할 수 있습니다.", force=True)
+
+        # --user 옵션이 지정된 경우 통합 점수에서 출력
+        user_lookup_name = user_info.get(args.user, args.user) if args.user and user_info else args.user
+        if args.user and user_lookup_name in overall_scores:
+            sorted_users = list(overall_scores.keys())
+            user_rank = sorted_users.index(user_lookup_name) + 1
+            user_score = overall_scores[user_lookup_name]["total"]
+            print()
+            log(f"[INFO] 사용자: {user_lookup_name}", force=True)
+            log(f"[INFO] 총점: {user_score:.2f}점", force=True)
+            log(f"[INFO] 등수: {user_rank}등 (전체 {len(sorted_users)}명 중)", force=True)
+            print()
+        elif args.user:
+            log(f"[INFO] 사용자 '{args.user}'의 점수가 통합 분석 결과에 없습니다.", force=True)
 
 if __name__ == "__main__":
     main()
