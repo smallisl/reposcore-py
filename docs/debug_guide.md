@@ -98,6 +98,25 @@ def divide(x, y):
 
 divide(10, 0)
 ```
+## 6.Verbose 옵션 및 로그 캡처 관련 가이드
+
+1. `-v/--verbose` 옵션을 활성화하여 디버깅 정보를 출력할 수 있습니다. 로그 레벨은 DEBUG/INFO로 구분됩니다.
+2. CLI 또는 테스트에서 `subprocess.run()`을 사용할 경우, `stderr=subprocess.STDOUT` 옵션을 통해 `stderr` 로그도 `stdout`으로 합쳐서 캡처해야 합니다.
+3. CI 환경에서는 `stdout`만 캡처할 수 있기 때문에, `stderr` 로그가 누락되어 테스트 실패가 발생할 수 있습니다. 따라서 `stderr=subprocess.STDOUT` 또는 `capture_output=False`를 설정하는 것이 좋습니다.
+
+ 코드:
+
+```python
+import subprocess
+
+result = subprocess.run(
+    ["your_command", "-v"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    text=True
+)
+print(result.stdout)
+
 
 ---
 
